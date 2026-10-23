@@ -13,38 +13,43 @@ build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 -- extra-source-files:
 
-common warnings
+common shared
+    default-language: GHC2021
     ghc-options: -Wall
+    default-extensions:
+        OverloadedStrings
+        DataKinds
+    build-depends:
+        base ^>=4.20.2.0,
+        servant-server
 
 library
-    import:           warnings
-    exposed-modules:  MyLib
+    import:           shared
+    exposed-modules:
+        UnoSteve.Api
     -- other-modules:
     -- other-extensions:
-    build-depends:    base ^>=4.20.2.0
+    build-depends:
+        aeson,
+        text
     hs-source-dirs:   src
-    default-language: GHC2021
 
 executable unosteve
-    import:           warnings
+    import:           shared
     main-is:          Main.hs
     -- other-modules:
     -- other-extensions:
     build-depends:
-        base ^>=4.20.2.0,
-        unosteve
-
+        unosteve,
+        warp
     hs-source-dirs:   app
-    default-language: GHC2021
 
 test-suite unosteve-test
-    import:           warnings
-    default-language: GHC2021
+    import:           shared
     -- other-modules:
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
-        base ^>=4.20.2.0,
         unosteve
