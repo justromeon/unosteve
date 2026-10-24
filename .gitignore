@@ -23,3 +23,8 @@ cabal.project.local~
 .ghc.environment.*
 .direnv/
 result
+.env
+.env.*
+!.env.example
+.direnv/
+data/
