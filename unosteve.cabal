@@ -17,21 +17,26 @@ common shared
     default-language: GHC2021
     ghc-options: -Wall
     default-extensions:
-        OverloadedStrings
         DataKinds
+        LambdaCase
+        OverloadedRecordDot
+        OverloadedStrings
     build-depends:
         base ^>=4.20.2.0,
-        servant-server
+        servant-server,
+        text
 
 library
     import:           shared
     exposed-modules:
         UnoSteve.Api
+        UnoSteve.Logger
     -- other-modules:
     -- other-extensions:
     build-depends:
         aeson,
-        text
+        time,
+        containers
     hs-source-dirs:   src
 
 executable unosteve
@@ -52,4 +57,5 @@ test-suite unosteve-test
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
-        unosteve
+        unosteve,
+        hspec
