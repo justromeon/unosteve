@@ -30,6 +30,7 @@ library
     import:           shared
     exposed-modules:
         UnoSteve.Api
+        UnoSteve.Config
         UnoSteve.Logger
     -- other-modules:
     -- other-extensions:
