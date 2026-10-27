@@ -1,0 +1,6 @@
+packages:
+  .
+
+-- Every dependency must come from Nix. If one is missing, fail loudly
+-- instead of silently downloading a different version from Hackage.
+active-repositories: :none
