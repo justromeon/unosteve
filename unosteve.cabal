@@ -36,6 +36,10 @@ library
         UnoSteve.Database
         UnoSteve.Env
         UnoSteve.Logger
+        UnoSteve.User
+        UnoSteve.UserRepo
+        UnoSteve.UserRepo.InMemory
+        UnoSteve.UserRepo.Postgres
     -- other-modules:
     -- other-extensions:
     build-depends:
