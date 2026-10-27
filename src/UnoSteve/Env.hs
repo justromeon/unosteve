@@ -2,8 +2,12 @@ module UnoSteve.Env where
 
 import UnoSteve.Config (Config)
 import UnoSteve.Logger qualified as Logger
+import UnoSteve.Database qualified as Database
+import UnoSteve.UserRepo qualified as UserRepo
 
 data Env = Env
   { config :: Config
   , logger :: Logger.Handle
+  , database :: Database.Handle
+  , users :: UserRepo.Handle
   }
