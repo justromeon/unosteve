@@ -21,6 +21,8 @@ common shared
         LambdaCase
         OverloadedRecordDot
         OverloadedStrings
+        DerivingStrategies
+        DuplicateRecordFields
     build-depends:
         base ^>=4.20.2.0,
         servant-server,
@@ -31,6 +33,7 @@ library
     exposed-modules:
         UnoSteve.Api
         UnoSteve.Config
+        UnoSteve.Database
         UnoSteve.Env
         UnoSteve.Logger
     -- other-modules:
@@ -38,11 +41,17 @@ library
     build-depends:
         aeson,
         time,
-        containers
+        containers,
+        uuid,
+        hasql,
+        hasql-pool,
+        hasql-th,
+        profunctors
     hs-source-dirs:   src
 
 executable unosteve
     import:           shared
+    ghc-options:      -threaded -rtsopts -with-rtsopts=-N
     main-is:          Main.hs
     -- other-modules:
     -- other-extensions:
@@ -58,6 +67,8 @@ test-suite unosteve-test
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
+    ghc-options:      -threaded -rtsopts -with-rtsopts=-N
     build-depends:
         unosteve,
-        hspec
+        hspec,
+        hasql
