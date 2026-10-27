@@ -70,6 +70,19 @@
             port = 5432;
             initialDatabases = [{ name = "unosteve"; }];
           };
+
+          # Apply migrations to the dev and test databases once Postgres is ready.
+          # `dbmate up` also creates the database if it doesn't exist yet.
+          settings.processes.migrate = {
+            command = ''
+              : "''${DATABASE_URL:?missing in .env}"
+              : "''${TEST_DATABASE_URL:?missing in .env}"
+              ${pkgs.dbmate}/bin/dbmate up
+              ${pkgs.dbmate}/bin/dbmate --url "$TEST_DATABASE_URL" up
+            '';
+            depends_on."pg".condition = "process_healthy";
+          };
+
         };
 
         devShells.default = pkgs.mkShell {
@@ -78,7 +91,7 @@
             config.haskellProjects.default.outputs.devShell
             config.process-compose."dev".services.outputs.devShell
           ];
-          packages = [ pkgs.awscli2 ];
+          packages = [ pkgs.awscli2 pkgs.dbmate ];
         };
 
         # haskell-flake doesn't set the default package, but you can do it here.
