@@ -1,6 +1,10 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-module UnoSteve.UserRepo.Postgres where
+module UnoSteve.UserRepo.Postgres
+  ( new
+  , close
+  , withHandle
+  ) where
 
 import Control.Exception (bracket, throwIO)
 import Data.Int (Int64)
@@ -8,13 +12,22 @@ import Data.Profunctor (dimap)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.UUID (UUID)
-import Hasql.Pool qualified as Pool
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement)
 import Hasql.TH (maybeStatement, singletonStatement)
 
 import UnoSteve.Database qualified as Database
-import UnoSteve.User
+import UnoSteve.Domain.User
+  ( Email
+  , NewUser (..)
+  , PasswordHash (..)
+  , User (..)
+  , UserId (..)
+  , defaultQuotaBytes
+  , emailText
+  , hashText
+  , unsafeEmail
+  )
 import UnoSteve.UserRepo qualified as UserRepo
 
 new :: Database.Handle -> IO UserRepo.Handle
@@ -39,7 +52,7 @@ create db newUser = do
   case result of
     Right user -> pure (Right user)
     Left err
-      | isUniqueViolation err -> pure (Left UserRepo.EmailTaken)
+      | Database.isUniqueViolation err -> pure (Left UserRepo.EmailTaken)
       | otherwise -> throwIO err
 
 findByEmail :: Database.Handle -> Email -> IO (Maybe User)
@@ -93,10 +106,3 @@ selectUserById =
         from users
         where id = $1 :: uuid
       |]
-
--- | Postgres error code 23505 = unique_violation.
-isUniqueViolation :: Pool.UsageError -> Bool
-isUniqueViolation = \case
-  Pool.SessionUsageError
-    (Session.QueryError _ _ (Session.ResultError (Session.ServerError "23505" _ _ _ _))) -> True
-  _ -> False

@@ -1,14 +1,19 @@
-module UnoSteve.Logger where
+module UnoSteve.Logger
+  ( Level (..)
+  , parseLevel
+  , renderLevel
+  , Handle (..)
+  , noop
+  , atLeast
+  , withPrefix
+  , logDebug
+  , logInfo
+  , logWarn
+  , logError
+  ) where
 
-import Control.Concurrent.MVar (newMVar, withMVar)
-import Control.Exception (bracket)
 import Control.Monad (when)
 import Data.Text (Text)
-import Data.Text qualified as T
-import Data.Text.IO qualified as TIO
-import Data.Time (getCurrentTime)
-import Data.Time.Format.ISO8601 (iso8601Show)
-import System.IO (BufferMode (LineBuffering), hFlush, hSetBuffering, stdout)
 
 data Level
   = Debug
@@ -16,34 +21,6 @@ data Level
   | Warn
   | Error
   deriving (Eq, Ord, Show)
-
-newtype Config = Config {minLevel :: Level}
-
-newtype Handle = Handle
-  { logAt :: Level -> Text -> IO ()
-  }
-
-new :: Config -> IO Handle
-new config = do
-  hSetBuffering stdout LineBuffering
-  lock <- newMVar ()
-  let write level msg = withMVar lock $ \() -> do
-        now <- getCurrentTime
-        TIO.putStrLn $ T.pack (iso8601Show now) <> " [" <> renderLevel level <> "] " <> msg
-  pure $ atLeast config.minLevel (Handle write)
-
-close :: Handle -> IO ()
-close _ = hFlush stdout
-
-withHandle :: Config -> (Handle -> IO a) -> IO a
-withHandle config = bracket (new config) close
-
-atLeast :: Level -> Handle -> Handle
-atLeast threshold h = Handle $ \level msg ->
-  when (level >= threshold) (h.logAt level msg)
-
-withPrefix :: Text -> Handle -> Handle
-withPrefix prefix h = Handle $ \level msg -> h.logAt level (prefix <> msg)
 
 renderLevel :: Level -> Text
 renderLevel Debug = "DEBUG"
@@ -59,8 +36,19 @@ parseLevel = \case
   "error" -> Right Error
   invalid -> Left $ "Invalid Level: " <> invalid
 
+newtype Handle = Handle
+  { logAt :: Level -> Text -> IO ()
+  }
+
 noop :: Handle
 noop = Handle $ \_ _ -> pure ()
+
+atLeast :: Level -> Handle -> Handle
+atLeast threshold h = Handle $ \level msg ->
+  when (level >= threshold) (h.logAt level msg)
+
+withPrefix :: Text -> Handle -> Handle
+withPrefix prefix h = Handle $ \level msg -> h.logAt level (prefix <> msg)
 
 logDebug, logInfo, logWarn, logError :: Handle -> Text -> IO ()
 logDebug h = h.logAt Debug

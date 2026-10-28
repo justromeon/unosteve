@@ -1,4 +1,8 @@
-module UnoSteve.Config where
+module UnoSteve.Config
+  ( Config (..)
+  , S3Config (..)
+  , load
+  ) where
 
 import Control.Monad (unless)
 import Data.Map qualified as Map
@@ -8,17 +12,15 @@ import Data.Text.Read (decimal)
 import System.Environment (getEnvironment)
 import System.Exit (die)
 
+import UnoSteve.Database qualified as Database
 import UnoSteve.Logger qualified as Logger
-
-newtype Secret = Secret {reveal :: Text}
-
-instance Show Secret where
-  show _ = "<redacted>"
+import UnoSteve.Logger.Stdout qualified as Logger.Stdout
+import UnoSteve.Secret (Secret (..))
 
 data Config = Config
   { port :: Int
-  , databaseUrl :: Secret
-  , logLevel :: Logger.Level
+  , logger :: Logger.Stdout.Config
+  , database :: Database.Config
   , s3 :: S3Config
   }
   deriving (Show)
@@ -48,8 +50,8 @@ parsePort t = case decimal t of
   Right (p, "") | p > 0 && p < 65536 -> Right p
   _ -> Left $ "PORT must be a number between 1 and 65535, got: " <> t
 
-loadConfig :: IO Config
-loadConfig = do
+load :: IO Config
+load = do
   env <- Map.map T.pack . Map.fromList <$> getEnvironment
 
   let missingVars = filter (`Map.notMember` env) requiredVars
@@ -70,11 +72,20 @@ loadConfig = do
           <*> getVar "S3_ACCESS_KEY"
           <*> (Secret <$> getVar "S3_SECRET_KEY")
 
+  let eitherLoggerConfig =
+        Logger.Stdout.Config
+          <$> (getVar "LOG_LEVEL" >>= Logger.parseLevel)
+
+  let eitherDatabaseConfig =
+        Database.Config
+          <$> (Secret <$> getVar "DATABASE_URL")
+          <*> pure 10
+
   let eitherConfig =
         Config
           <$> (getVar "PORT" >>= parsePort)
-          <*> (Secret <$> getVar "DATABASE_URL")
-          <*> (getVar "LOG_LEVEL" >>= Logger.parseLevel)
+          <*> eitherLoggerConfig
+          <*> eitherDatabaseConfig
           <*> eitherS3Config
 
   case eitherConfig of

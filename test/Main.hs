@@ -1,27 +1,26 @@
 module Main (main) where
 
 import Data.IORef (modifyIORef', newIORef, readIORef)
-import Test.Hspec
-
 import Data.Text (Text)
 import Data.Text qualified as T
 import Hasql.Session qualified as Session
 import System.Environment (lookupEnv)
-import UnoSteve.Config (Secret (Secret))
+import Test.Hspec
+
 import UnoSteve.Database qualified as Database
-import UnoSteve.Logger qualified as Logger
-import UnoSteve.User
+import UnoSteve.Domain.User
   ( Email
-  , NewUser (NewUser)
-  , PasswordHash (PasswordHash)
-  , User (userId)
+  , NewUser (..)
+  , PasswordHash (..)
+  , User (..)
   , emailText
   , mkEmail
   )
-import UnoSteve.UserRepo (Handle (findById))
+import UnoSteve.Logger qualified as Logger
+import UnoSteve.Secret (Secret (..))
 import UnoSteve.UserRepo qualified as UserRepo
-import UnoSteve.UserRepo.InMemory qualified as InMemory
-import UnoSteve.UserRepo.Postgres qualified as UserRepoPostgres
+import UnoSteve.UserRepo.InMemory qualified as UserRepo.InMemory
+import UnoSteve.UserRepo.Postgres qualified as UserRepo.Postgres
 
 testEmail :: Text -> Email
 testEmail raw = either (error . T.unpack) id (mkEmail raw)
@@ -37,7 +36,7 @@ main = do
     emailSpec
 
     describe "UserRepo (InMemory)" $
-      around InMemory.withHandle userRepoContract
+      around UserRepo.InMemory.withHandle userRepoContract
 
     describe "UserRepo (Postgres)" $ case testDatabaseUrl of
       Nothing -> it "runs against Postgres" $ pendingWith "set TEST_DATABASE_URL to run"
@@ -110,4 +109,4 @@ withPostgres :: String -> (UserRepo.Handle -> IO ()) -> IO ()
 withPostgres url action =
   Database.withHandle (Database.Config (Secret (T.pack url)) 2) $ \db -> do
     Database.runOrThrow db (Session.sql "TRUNCATE users")
-    UserRepoPostgres.withHandle db action
+    UserRepo.Postgres.withHandle db action

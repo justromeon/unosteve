@@ -1,4 +1,8 @@
-module UnoSteve.UserRepo.InMemory where
+module UnoSteve.UserRepo.InMemory
+  ( new
+  , close
+  , withHandle
+  ) where
 
 import Control.Exception (bracket)
 import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
@@ -7,7 +11,8 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Time (getCurrentTime)
 import Data.UUID.V4 (nextRandom)
-import UnoSteve.User
+
+import UnoSteve.Domain.User (Email, NewUser (..), User (..), UserId (..), defaultQuotaBytes)
 import UnoSteve.UserRepo qualified as UserRepo
 
 new :: IO UserRepo.Handle
@@ -17,7 +22,7 @@ new = do
     UserRepo.Handle
       { UserRepo.create = create ref
       , UserRepo.findByEmail = findByEmail ref
-      , UserRepo.findById = findbyId ref
+      , UserRepo.findById = findById ref
       }
 
 close :: UserRepo.Handle -> IO ()
@@ -46,5 +51,5 @@ create ref newUser = do
 findByEmail :: IORef (Map Email User) -> Email -> IO (Maybe User)
 findByEmail ref emailAdd = Map.lookup emailAdd <$> readIORef ref
 
-findbyId :: IORef (Map Email User) -> UserId -> IO (Maybe User)
-findbyId ref targerId = find ((== targerId) . userId) . Map.elems <$> readIORef ref
+findById :: IORef (Map Email User) -> UserId -> IO (Maybe User)
+findById ref targetId = find ((== targetId) . userId) . Map.elems <$> readIORef ref

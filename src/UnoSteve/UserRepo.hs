@@ -1,6 +1,9 @@
-module UnoSteve.UserRepo where
+module UnoSteve.UserRepo
+  ( CreateError (..)
+  , Handle (..)
+  ) where
 
-import UnoSteve.User (Email, NewUser, User, UserId)
+import UnoSteve.Domain.User (Email, NewUser, User, UserId)
 
 data CreateError = EmailTaken
   deriving (Eq, Show)

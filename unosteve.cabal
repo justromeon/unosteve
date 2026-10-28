@@ -38,9 +38,11 @@ library
     UnoSteve.Api
     UnoSteve.Config
     UnoSteve.Database
+    UnoSteve.Domain.User
     UnoSteve.Env
     UnoSteve.Logger
-    UnoSteve.User
+    UnoSteve.Logger.Stdout
+    UnoSteve.Secret
     UnoSteve.UserRepo
     UnoSteve.UserRepo.InMemory
     UnoSteve.UserRepo.Postgres

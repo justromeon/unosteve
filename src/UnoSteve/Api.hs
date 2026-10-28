@@ -1,15 +1,20 @@
-module UnoSteve.Api (API, api, server) where
+module UnoSteve.Api
+  ( API
+  , api
+  , server
+  ) where
 
+import Control.Exception (SomeException, try)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (ToJSON)
 import Data.Text (Text)
+import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Servant
 
-import Control.Exception (SomeException, try)
-import Data.Text qualified as T
 import UnoSteve.Database qualified as Database
-import UnoSteve.Env (Env (database, logger))
+import UnoSteve.Env (Env)
+import UnoSteve.Env qualified as Env
 import UnoSteve.Logger qualified as Logger
 
 newtype Health = Health {status :: Text}
@@ -31,22 +36,22 @@ api = Proxy
 
 server :: Env -> Server API
 server env =
-  healthHandler env
-    :<|> readyHandler env
+  healthHandler env.logger
+    :<|> readyHandler env.logger env.database
     :<|> versionHandler
 
-healthHandler :: Env -> Handler Health
-healthHandler env = do
-  liftIO $ Logger.logDebug env.logger "GET /healthz"
+healthHandler :: Logger.Handle -> Handler Health
+healthHandler logger = do
+  liftIO $ Logger.logDebug logger "GET /healthz"
   pure (Health "ok")
 
-readyHandler :: Env -> Handler Health
-readyHandler env = do
-  result <- liftIO $ try (Database.ping env.database)
+readyHandler :: Logger.Handle -> Database.Handle -> Handler Health
+readyHandler logger database = do
+  result <- liftIO $ try (Database.ping database)
   case result of
     Right () -> pure (Health "ok")
     Left (err :: SomeException) -> do
-      liftIO $ Logger.logError env.logger ("readyz: database is unreachable " <> T.pack (show err))
+      liftIO $ Logger.logError logger ("readyz: database is unreachable " <> T.pack (show err))
       throwError err503
 
 versionHandler :: Handler Version

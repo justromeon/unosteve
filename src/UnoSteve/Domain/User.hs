@@ -1,4 +1,15 @@
-module UnoSteve.User where
+module UnoSteve.Domain.User
+  ( User (..)
+  , NewUser (..)
+  , UserId (..)
+  , Email
+  , mkEmail
+  , emailText
+  , unsafeEmail
+  , PasswordHash (..)
+  , hashText
+  , defaultQuotaBytes
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

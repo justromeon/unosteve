@@ -1,4 +1,6 @@
-module UnoSteve.Env where
+module UnoSteve.Env
+  ( Env (..)
+  ) where
 
 import UnoSteve.Config (Config)
 import UnoSteve.Database qualified as Database
