@@ -44,8 +44,6 @@ library
     UnoSteve.Logger.Stdout
     UnoSteve.Secret
     UnoSteve.UserRepo
-    UnoSteve.UserRepo.InMemory
-    UnoSteve.UserRepo.Postgres
 
   -- other-modules:
   -- other-extensions:

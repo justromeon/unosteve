@@ -19,8 +19,6 @@ import UnoSteve.Domain.User
 import UnoSteve.Logger qualified as Logger
 import UnoSteve.Secret (Secret (..))
 import UnoSteve.UserRepo qualified as UserRepo
-import UnoSteve.UserRepo.InMemory qualified as UserRepo.InMemory
-import UnoSteve.UserRepo.Postgres qualified as UserRepo.Postgres
 
 testEmail :: Text -> Email
 testEmail raw = either (error . T.unpack) id (mkEmail raw)
@@ -30,17 +28,10 @@ testUser raw = NewUser (testEmail raw) (PasswordHash "fake-hash")
 
 main :: IO ()
 main = do
-  testDatabaseUrl <- lookupEnv "TEST_DATABASE_URL"
   hspec $ do
     loggerSpec
     emailSpec
-
-    describe "UserRepo (InMemory)" $
-      around UserRepo.InMemory.withHandle userRepoContract
-
-    describe "UserRepo (Postgres)" $ case testDatabaseUrl of
-      Nothing -> it "runs against Postgres" $ pendingWith "set TEST_DATABASE_URL to run"
-      Just url -> around (withPostgres url) userRepoContract
+    describe "UserRepo" $ postgresSpec userRepoSpec
 
 -- Logger tests
 loggerSpec :: Spec
@@ -87,26 +78,30 @@ emailSpec = do
   isLeft = either (const True) (const False)
 
 -- Database tests
-userRepoContract :: SpecWith UserRepo.Handle
-userRepoContract = do
-  it "finds a user it created using email" $ \repo -> do
-    Right created <- repo.create (testUser "justin@example.com")
-    repo.findByEmail (testEmail "justin@example.com") `shouldReturn` Just created
+userRepoSpec :: SpecWith Database.Handle
+userRepoSpec = do
+  it "finds a user it created using email" $ \db -> do
+    Right created <- UserRepo.create db (testUser "justin@example.com")
+    UserRepo.findByEmail db (testEmail "justin@example.com") `shouldReturn` Just created
 
-  it "finds a user it created using id" $ \repo -> do
-    Right created <- repo.create (testUser "justin@example.com")
-    repo.findById created.userId `shouldReturn` Just created
+  it "finds a user it created using id" $ \db -> do
+    Right created <- UserRepo.create db (testUser "justin@example.com")
+    UserRepo.findById db created.userId `shouldReturn` Just created
 
-  it "rejects a duplicate email, ignoring case" $ \repo -> do
-    _ <- repo.create (testUser "justin@example.com")
-    repo.create (testUser "Justin@Example.COM") `shouldReturn` Left UserRepo.EmailTaken
+  it "rejects a duplicate email, ignoring case" $ \db -> do
+    _ <- UserRepo.create db (testUser "justin@example.com")
+    UserRepo.create db (testUser "Justin@Example.COM") `shouldReturn` Left UserRepo.EmailTaken
 
-  it "returns Nothing for an unknown email" $ \repo -> do
-    repo.findByEmail (testEmail "unknown@email.com") `shouldReturn` Nothing
+  it "returns Nothing for an unknown email" $ \db ->
+    UserRepo.findByEmail db (testEmail "unknown@email.com") `shouldReturn` Nothing
 
--- | Fresh pool and empty table for every test.
-withPostgres :: String -> (UserRepo.Handle -> IO ()) -> IO ()
-withPostgres url action =
-  Database.withHandle (Database.Config (Secret (T.pack url)) 2) $ \db -> do
-    Database.runOrThrow db (Session.sql "TRUNCATE users")
-    UserRepo.Postgres.withHandle db action
+-- \| Each test gets a fresh pool and empty tables. Pending when TEST_DATABASE_URL is unset.
+postgresSpec :: SpecWith Database.Handle -> Spec
+postgresSpec spec = do
+  testDatabaseUrl <- runIO (lookupEnv "TEST_DATABASE_URL")
+  case testDatabaseUrl of
+    Nothing -> it "needs Postgres" $ pendingWith "set TEST_DATABASE_URL to run"
+    Just url -> flip around spec $ \test ->
+      Database.withHandle (Database.Config (Secret (T.pack url)) 2) $ \db -> do
+        Database.runOrThrow db (Session.sql "TRUNCATE users")
+        test db
