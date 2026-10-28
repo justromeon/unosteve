@@ -6,34 +6,34 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Servant
 
-import UnoSteve.Env (Env (logger, database))
+import Control.Exception (SomeException, try)
+import Data.Text qualified as T
+import UnoSteve.Database qualified as Database
+import UnoSteve.Env (Env (database, logger))
 import UnoSteve.Logger qualified as Logger
-import Control.Exception (try, SomeException)
-import qualified UnoSteve.Database as Database
-import qualified Data.Text as T
 
-newtype Health = Health { status :: Text }
-  deriving Generic
+newtype Health = Health {status :: Text}
+  deriving (Generic)
 
-newtype Version = Version { version :: Text }
-  deriving Generic
+newtype Version = Version {version :: Text}
+  deriving (Generic)
 
 instance ToJSON Health
 instance ToJSON Version
 
-type API
-  =    "healthz" :> Get '[JSON] Health
-  :<|> "readyz"  :> Get '[JSON] Health
-  :<|> "version" :> Get '[JSON] Version
+type API =
+  "healthz" :> Get '[JSON] Health
+    :<|> "readyz" :> Get '[JSON] Health
+    :<|> "version" :> Get '[JSON] Version
 
 api :: Proxy API
 api = Proxy
 
 server :: Env -> Server API
-server env
-  =    healthHandler env
-  :<|> readyHandler env
-  :<|> versionHandler
+server env =
+  healthHandler env
+    :<|> readyHandler env
+    :<|> versionHandler
 
 healthHandler :: Env -> Handler Health
 healthHandler env = do

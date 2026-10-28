@@ -1,15 +1,16 @@
 {-# LANGUAGE QuasiQuotes #-}
+
 module UnoSteve.UserRepo.Postgres where
 
-import Control.Exception (throwIO, bracket)
-import Data.Text (Text)
+import Control.Exception (bracket, throwIO)
 import Data.Int (Int64)
+import Data.Profunctor (dimap)
+import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.UUID (UUID)
-import Data.Profunctor (dimap)
 import Hasql.Pool qualified as Pool
-import Hasql.Statement (Statement)
 import Hasql.Session qualified as Session
+import Hasql.Statement (Statement)
 import Hasql.TH (maybeStatement, singletonStatement)
 
 import UnoSteve.Database qualified as Database
@@ -76,7 +77,7 @@ selectUserByEmail =
   dimap
     emailText
     (fmap toUser)
-      [maybeStatement|
+    [maybeStatement|
         select id :: uuid, email :: text, password_hash :: text, quota_bytes :: int8, created_at :: timestamptz
         from users
         where email = $1 :: text
@@ -87,7 +88,7 @@ selectUserById =
   dimap
     (\(UserId uuid) -> uuid)
     (fmap toUser)
-      [maybeStatement|
+    [maybeStatement|
         select id :: uuid, email :: text, password_hash :: text, quota_bytes :: int8, created_at :: timestamptz
         from users
         where id = $1 :: uuid
@@ -96,5 +97,6 @@ selectUserById =
 -- | Postgres error code 23505 = unique_violation.
 isUniqueViolation :: Pool.UsageError -> Bool
 isUniqueViolation = \case
-  Pool.SessionUsageError (Session.QueryError _ _ (Session.ResultError (Session.ServerError "23505" _ _ _ _))) -> True
+  Pool.SessionUsageError
+    (Session.QueryError _ _ (Session.ResultError (Session.ServerError "23505" _ _ _ _))) -> True
   _ -> False

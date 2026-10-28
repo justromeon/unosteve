@@ -1,78 +1,87 @@
-cabal-version:      3.4
-name:               unosteve
-version:            0.1.0.0
+cabal-version:   3.4
+name:            unosteve
+version:         0.1.0.0
+
 -- synopsis:
 -- description:
-license:            BSD-3-Clause
-license-file:       LICENSE
-author:             Justin Kian Romeon
-maintainer:         romeonjustin@gmail.com
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Justin Kian Romeon
+maintainer:      romeonjustin@gmail.com
+
 -- copyright:
-category:           Web
-build-type:         Simple
-extra-doc-files:    CHANGELOG.md
+category:        Web
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
 -- extra-source-files:
 
 common shared
-    default-language: GHC2021
-    ghc-options: -Wall
-    default-extensions:
-        DataKinds
-        LambdaCase
-        OverloadedRecordDot
-        OverloadedStrings
-        DerivingStrategies
-        DuplicateRecordFields
-    build-depends:
-        base ^>=4.20.2.0,
-        servant-server,
-        text
+  default-language:   GHC2021
+  ghc-options:        -Wall
+  default-extensions:
+    DataKinds
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+
+  build-depends:
+    , base            ^>=4.20.2.0
+    , servant-server
+    , text
 
 library
-    import:           shared
-    exposed-modules:
-        UnoSteve.Api
-        UnoSteve.Config
-        UnoSteve.Database
-        UnoSteve.Env
-        UnoSteve.Logger
-        UnoSteve.User
-        UnoSteve.UserRepo
-        UnoSteve.UserRepo.InMemory
-        UnoSteve.UserRepo.Postgres
-    -- other-modules:
-    -- other-extensions:
-    build-depends:
-        aeson,
-        time,
-        containers,
-        uuid,
-        hasql,
-        hasql-pool,
-        hasql-th,
-        profunctors
-    hs-source-dirs:   src
+  import:          shared
+  exposed-modules:
+    UnoSteve.Api
+    UnoSteve.Config
+    UnoSteve.Database
+    UnoSteve.Env
+    UnoSteve.Logger
+    UnoSteve.User
+    UnoSteve.UserRepo
+    UnoSteve.UserRepo.InMemory
+    UnoSteve.UserRepo.Postgres
+
+  -- other-modules:
+  -- other-extensions:
+  build-depends:
+    , aeson
+    , containers
+    , hasql
+    , hasql-pool
+    , hasql-th
+    , profunctors
+    , time
+    , uuid
+
+  hs-source-dirs:  src
 
 executable unosteve
-    import:           shared
-    ghc-options:      -threaded -rtsopts -with-rtsopts=-N
-    main-is:          Main.hs
-    -- other-modules:
-    -- other-extensions:
-    build-depends:
-        unosteve,
-        warp
-    hs-source-dirs:   app
+  import:         shared
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  main-is:        Main.hs
+
+  -- other-modules:
+  -- other-extensions:
+  build-depends:
+    , unosteve
+    , warp
+
+  hs-source-dirs: app
 
 test-suite unosteve-test
-    import:           shared
-    -- other-modules:
-    -- other-extensions:
-    type:             exitcode-stdio-1.0
-    hs-source-dirs:   test
-    main-is:          Main.hs
-    ghc-options:      -threaded -rtsopts -with-rtsopts=-N
-    build-depends:
-        unosteve,
-        hspec,
-        hasql
+  import:         shared
+
+  -- other-modules:
+  -- other-extensions:
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , hasql
+    , hspec
+    , unosteve

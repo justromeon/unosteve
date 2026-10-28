@@ -1,12 +1,12 @@
 module UnoSteve.Database where
 
-import Control.Exception (throwIO, onException, bracket)
+import Control.Exception (bracket, onException, throwIO)
+import Hasql.Connection.Setting qualified as ConnectionSetting
+import Hasql.Connection.Setting.Connection qualified as ConnectionString
 import Hasql.Pool (Pool, UsageError)
 import Hasql.Pool qualified as Pool
 import Hasql.Pool.Config qualified as Pool
 import Hasql.Pool.Config qualified as PoolConfig
-import Hasql.Connection.Setting qualified as ConnectionSetting
-import Hasql.Connection.Setting.Connection qualified as ConnectionString
 import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 
@@ -17,16 +17,18 @@ data Config = Config
   , poolSize :: Int
   }
 
-newtype Handle = Handle { pool :: Pool }
+newtype Handle = Handle {pool :: Pool}
 
 new :: Config -> IO Handle
 new config = do
-  connections <- Pool.acquire $ Pool.settings
-    [ PoolConfig.size config.poolSize
-    , PoolConfig.acquisitionTimeout 10
-    , PoolConfig.staticConnectionSettings
-        [ConnectionSetting.connection (ConnectionString.string config.url.reveal)]
-    ]
+  connections <-
+    Pool.acquire $
+      Pool.settings
+        [ PoolConfig.size config.poolSize
+        , PoolConfig.acquisitionTimeout 10
+        , PoolConfig.staticConnectionSettings
+            [ConnectionSetting.connection (ConnectionString.string config.url.reveal)]
+        ]
 
   let handle = Handle connections
   -- Ping once so bad URL fails at startup instead of first request

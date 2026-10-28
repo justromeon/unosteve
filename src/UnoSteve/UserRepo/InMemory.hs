@@ -1,22 +1,24 @@
 module UnoSteve.UserRepo.InMemory where
-import qualified UnoSteve.UserRepo as UserRepo
-import Data.IORef (newIORef, IORef, atomicModifyIORef', readIORef)
-import qualified Data.Map as Map
-import UnoSteve.User
-import Data.Map (Map)
-import Data.UUID.V4 (nextRandom)
-import Data.Time (getCurrentTime)
+
 import Control.Exception (bracket)
+import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
 import Data.List (find)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Time (getCurrentTime)
+import Data.UUID.V4 (nextRandom)
+import UnoSteve.User
+import UnoSteve.UserRepo qualified as UserRepo
 
 new :: IO UserRepo.Handle
 new = do
   ref <- newIORef Map.empty
-  pure UserRepo.Handle
-    { UserRepo.create = create ref
-    , UserRepo.findByEmail = findByEmail ref
-    , UserRepo.findById = findbyId ref
-    }
+  pure
+    UserRepo.Handle
+      { UserRepo.create = create ref
+      , UserRepo.findByEmail = findByEmail ref
+      , UserRepo.findById = findbyId ref
+      }
 
 close :: UserRepo.Handle -> IO ()
 close _ = pure ()
@@ -28,7 +30,8 @@ create :: IORef (Map Email User) -> NewUser -> IO (Either UserRepo.CreateError U
 create ref newUser = do
   uuid <- nextRandom
   now <- getCurrentTime
-  let user = User
+  let user =
+        User
           { userId = UserId uuid
           , email = newUser.email
           , passwordHash = newUser.passwordHash

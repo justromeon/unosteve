@@ -10,7 +10,7 @@ import System.Exit (die)
 
 import UnoSteve.Logger qualified as Logger
 
-newtype Secret = Secret { reveal :: Text }
+newtype Secret = Secret {reveal :: Text}
 
 instance Show Secret where
   show _ = "<redacted>"
@@ -20,7 +20,8 @@ data Config = Config
   , databaseUrl :: Secret
   , logLevel :: Logger.Level
   , s3 :: S3Config
-  } deriving Show
+  }
+  deriving (Show)
 
 data S3Config = S3Config
   { endpoint :: Text
@@ -28,7 +29,8 @@ data S3Config = S3Config
   , bucket :: Text
   , accessKey :: Text
   , secretKey :: Secret
-  } deriving Show
+  }
+  deriving (Show)
 
 requiredVars :: [String]
 requiredVars =
@@ -54,24 +56,27 @@ loadConfig = do
   unless (null missingVars) (die $ "Missing required .env vars: " <> show missingVars)
 
   let getVar :: String -> Either Text Text
-      getVar name = maybe
-        (Left $ "Missing var: " <> T.pack name)
-        Right
-        $ Map.lookup name env
+      getVar name =
+        maybe
+          (Left $ "Missing var: " <> T.pack name)
+          Right
+          $ Map.lookup name env
 
-  let eitherS3Config = S3Config
-        <$> getVar "S3_ENDPOINT"
-        <*> getVar "S3_REGION"
-        <*> getVar "S3_BUCKET"
-        <*> getVar "S3_ACCESS_KEY"
-        <*> (Secret <$> getVar "S3_SECRET_KEY")
+  let eitherS3Config =
+        S3Config
+          <$> getVar "S3_ENDPOINT"
+          <*> getVar "S3_REGION"
+          <*> getVar "S3_BUCKET"
+          <*> getVar "S3_ACCESS_KEY"
+          <*> (Secret <$> getVar "S3_SECRET_KEY")
 
-  let eitherConfig = Config
-        <$> (getVar "PORT" >>= parsePort)
-        <*> (Secret <$> getVar "DATABASE_URL")
-        <*> (getVar "LOG_LEVEL" >>= Logger.parseLevel)
-        <*> eitherS3Config
+  let eitherConfig =
+        Config
+          <$> (getVar "PORT" >>= parsePort)
+          <*> (Secret <$> getVar "DATABASE_URL")
+          <*> (getVar "LOG_LEVEL" >>= Logger.parseLevel)
+          <*> eitherS3Config
 
   case eitherConfig of
     Left err -> die $ T.unpack err
-    Right c  -> pure c
+    Right c -> pure c

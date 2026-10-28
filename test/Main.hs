@@ -1,20 +1,27 @@
 module Main (main) where
 
-import Data.IORef (newIORef, readIORef, modifyIORef')
+import Data.IORef (modifyIORef', newIORef, readIORef)
 import Test.Hspec
 
-import UnoSteve.Logger qualified as Logger
-import qualified Data.Text as T
-import UnoSteve.User (mkEmail, Email, NewUser (NewUser), PasswordHash (PasswordHash), emailText, User (userId))
 import Data.Text (Text)
-import UnoSteve.UserRepo qualified as UserRepo
-import qualified UnoSteve.UserRepo.Postgres as UserRepoPostgres
-import qualified UnoSteve.Database as Database
-import UnoSteve.Config (Secret(Secret))
-import qualified Hasql.Session as Session
-import qualified UnoSteve.UserRepo.InMemory as InMemory
+import Data.Text qualified as T
+import Hasql.Session qualified as Session
 import System.Environment (lookupEnv)
-import UnoSteve.UserRepo (Handle(findById))
+import UnoSteve.Config (Secret (Secret))
+import UnoSteve.Database qualified as Database
+import UnoSteve.Logger qualified as Logger
+import UnoSteve.User
+  ( Email
+  , NewUser (NewUser)
+  , PasswordHash (PasswordHash)
+  , User (userId)
+  , emailText
+  , mkEmail
+  )
+import UnoSteve.UserRepo (Handle (findById))
+import UnoSteve.UserRepo qualified as UserRepo
+import UnoSteve.UserRepo.InMemory qualified as InMemory
+import UnoSteve.UserRepo.Postgres qualified as UserRepoPostgres
 
 testEmail :: Text -> Email
 testEmail raw = either (error . T.unpack) id (mkEmail raw)
@@ -35,7 +42,6 @@ main = do
     describe "UserRepo (Postgres)" $ case testDatabaseUrl of
       Nothing -> it "runs against Postgres" $ pendingWith "set TEST_DATABASE_URL to run"
       Just url -> around (withPostgres url) userRepoContract
-
 
 -- Logger tests
 loggerSpec :: Spec
@@ -78,8 +84,8 @@ emailSpec = do
       isLeft (mkEmail "justin.example.com") `shouldBe` True
     it "rejects more than one @" $
       isLeft (mkEmail "a@b@c") `shouldBe` True
-  where
-    isLeft = either (const True) (const False)
+ where
+  isLeft = either (const True) (const False)
 
 -- Database tests
 userRepoContract :: SpecWith UserRepo.Handle
@@ -98,7 +104,6 @@ userRepoContract = do
 
   it "returns Nothing for an unknown email" $ \repo -> do
     repo.findByEmail (testEmail "unknown@email.com") `shouldReturn` Nothing
-
 
 -- | Fresh pool and empty table for every test.
 withPostgres :: String -> (UserRepo.Handle -> IO ()) -> IO ()

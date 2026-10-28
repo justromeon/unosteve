@@ -1,0 +1,9 @@
+# Extensions enabled in unosteve.cabal, so hlint parses the code the same way GHC does
+- arguments:
+    - -XDataKinds
+    - -XDerivingStrategies
+    - -XDuplicateRecordFields
+    - -XLambdaCase
+    - -XOverloadedRecordDot
+    - -XOverloadedStrings
+    - -XQuasiQuotes

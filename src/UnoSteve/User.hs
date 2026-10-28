@@ -20,8 +20,8 @@ mkEmail raw
   , not (T.null domain) =
       Right (Email normalised)
   | otherwise = Left ("invalid email address: " <> raw)
-  where
-    normalised = T.toLower (T.strip raw)
+ where
+  normalised = T.toLower (T.strip raw)
 
 emailText :: Email -> Text
 emailText (Email t) = t
@@ -30,7 +30,7 @@ unsafeEmail :: Text -> Email
 unsafeEmail = Email
 
 newtype PasswordHash = PasswordHash Text
-  deriving newtype Eq
+  deriving newtype (Eq)
 
 instance Show PasswordHash where
   show _ = "<password hash>"
@@ -47,7 +47,8 @@ data User = User
   , passwordHash :: PasswordHash
   , quotaBytes :: Int64
   , createdAt :: UTCTime
-  } deriving stock (Eq, Show)
+  }
+  deriving stock (Eq, Show)
 
 data NewUser = NewUser
   { email :: Email
