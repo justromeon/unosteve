@@ -134,6 +134,9 @@
             touch $out
           '';
 
+          # Building the package also runs the cabal test suite
+          checks.unosteve = self'.packages.unosteve;
+
           # haskell-flake doesn't set the default package, but you can do it here.
           packages.default = self'.packages.unosteve;
         };
