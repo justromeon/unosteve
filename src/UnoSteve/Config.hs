@@ -74,7 +74,7 @@ load = do
 
   let eitherLoggerConfig =
         Logger.Stdout.Config
-          <$> (getVar "LOG_LEVEL" >>= Logger.parseLevel)
+          <$> maybe (Right Logger.Info) Logger.parseLevel (Map.lookup "LOG_LEVEL" env)
 
   let eitherDatabaseConfig =
         Database.Config
