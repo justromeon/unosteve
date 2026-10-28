@@ -34,3 +34,12 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - run: nix develop --command dbmate --url "$TEST_DATABASE_URL" up
       - run: nix develop --command cabal test --test-show-details=direct --test-options=--fail-on=pending
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history, so every commit is scanned
+      - uses: cachix/install-nix-action@v31
+      - run: nix run nixpkgs#gitleaks -- git . --redact --log-opts="origin/main..HEAD"
