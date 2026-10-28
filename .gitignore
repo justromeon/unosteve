@@ -28,3 +28,4 @@ result
 !.env.example
 .direnv/
 data/
+.zed/
