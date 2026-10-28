@@ -77,8 +77,7 @@ load = do
           <$> maybe (Right Logger.Info) Logger.parseLevel (Map.lookup "LOG_LEVEL" env)
 
   let eitherDatabaseConfig =
-        Database.Config
-          <$> (Secret <$> getVar "DATABASE_URL")
+        (Database.Config . Secret <$> getVar "DATABASE_URL")
           <*> pure 10
 
   let eitherConfig =
