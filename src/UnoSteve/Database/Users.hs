@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-module UnoSteve.UserRepo
+module UnoSteve.Database.Users
   ( CreateError (..)
   , create
   , findByEmail
