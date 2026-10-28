@@ -38,12 +38,12 @@ library
     UnoSteve.Api
     UnoSteve.Config
     UnoSteve.Database
+    UnoSteve.Database.Users
     UnoSteve.Domain.User
     UnoSteve.Env
     UnoSteve.Logger
     UnoSteve.Logger.Stdout
     UnoSteve.Secret
-    UnoSteve.UserRepo
 
   -- other-modules:
   -- other-extensions:

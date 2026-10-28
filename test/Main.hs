@@ -8,6 +8,7 @@ import System.Environment (lookupEnv)
 import Test.Hspec
 
 import UnoSteve.Database qualified as Database
+import UnoSteve.Database.Users qualified as Database.Users
 import UnoSteve.Domain.User
   ( Email
   , NewUser (..)
@@ -18,7 +19,6 @@ import UnoSteve.Domain.User
   )
 import UnoSteve.Logger qualified as Logger
 import UnoSteve.Secret (Secret (..))
-import UnoSteve.UserRepo qualified as UserRepo
 
 testEmail :: Text -> Email
 testEmail raw = either (error . T.unpack) id (mkEmail raw)
@@ -31,7 +31,7 @@ main = do
   hspec $ do
     loggerSpec
     emailSpec
-    describe "UserRepo" $ postgresSpec userRepoSpec
+    describe "Database.Users" $ postgresSpec usersSpec
 
 -- Logger tests
 loggerSpec :: Spec
@@ -78,22 +78,23 @@ emailSpec = do
   isLeft = either (const True) (const False)
 
 -- Database tests
-userRepoSpec :: SpecWith Database.Handle
-userRepoSpec = do
+usersSpec :: SpecWith Database.Handle
+usersSpec = do
   it "finds a user it created using email" $ \db -> do
-    Right created <- UserRepo.create db (testUser "justin@example.com")
-    UserRepo.findByEmail db (testEmail "justin@example.com") `shouldReturn` Just created
+    Right created <- Database.Users.create db (testUser "justin@example.com")
+    Database.Users.findByEmail db (testEmail "justin@example.com") `shouldReturn` Just created
 
   it "finds a user it created using id" $ \db -> do
-    Right created <- UserRepo.create db (testUser "justin@example.com")
-    UserRepo.findById db created.userId `shouldReturn` Just created
+    Right created <- Database.Users.create db (testUser "justin@example.com")
+    Database.Users.findById db created.userId `shouldReturn` Just created
 
   it "rejects a duplicate email, ignoring case" $ \db -> do
-    _ <- UserRepo.create db (testUser "justin@example.com")
-    UserRepo.create db (testUser "Justin@Example.COM") `shouldReturn` Left UserRepo.EmailTaken
+    _ <- Database.Users.create db (testUser "justin@example.com")
+    Database.Users.create db (testUser "Justin@Example.COM")
+      `shouldReturn` Left Database.Users.EmailTaken
 
   it "returns Nothing for an unknown email" $ \db ->
-    UserRepo.findByEmail db (testEmail "unknown@email.com") `shouldReturn` Nothing
+    Database.Users.findByEmail db (testEmail "unknown@email.com") `shouldReturn` Nothing
 
 -- \| Each test gets a fresh pool and empty tables. Pending when TEST_DATABASE_URL is unset.
 postgresSpec :: SpecWith Database.Handle -> Spec
