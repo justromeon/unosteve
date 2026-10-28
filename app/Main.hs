@@ -10,13 +10,11 @@ import UnoSteve.Database qualified as Database
 import UnoSteve.Env (Env (Env))
 import UnoSteve.Logger qualified as Logger
 import UnoSteve.Logger.Stdout qualified as Logger.Stdout
-import UnoSteve.UserRepo.Postgres qualified as UserRepo.Postgres
 
 main :: IO ()
 main = do
   config <- Config.load
   Logger.Stdout.withHandle config.logger $ \logger ->
-    Database.withHandle config.database $ \database ->
-      UserRepo.Postgres.withHandle database $ \users -> do
-        Logger.logInfo logger $ "Listening on port: " <> T.pack (show config.port)
-        run config.port $ serve api $ server (Env config logger database users)
+    Database.withHandle config.database $ \database -> do
+      Logger.logInfo logger $ "Listening on port: " <> T.pack (show config.port)
+      run config.port $ serve api $ server (Env config logger database)
