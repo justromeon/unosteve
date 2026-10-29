@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Data.IORef (modifyIORef', newIORef, readIORef)
+import Data.IORef (newIORef, readIORef)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Hasql.Session qualified as Session
@@ -18,6 +18,7 @@ import UnoSteve.Domain.User
   , mkEmail
   )
 import UnoSteve.Logger qualified as Logger
+import UnoSteve.Logger.Collecting qualified as Logger.Collecting
 import UnoSteve.Secret (Secret (..))
 
 testEmail :: Text -> Email
@@ -38,31 +39,25 @@ loggerSpec :: Spec
 loggerSpec = do
   describe "Logger.atLeast" $ do
     it "drops a message below threshold" $ do
-      ref <- newIORef []
-      let collecting = Logger.Handle $ \level msg -> modifyIORef' ref ((level, msg) :)
-          logger = Logger.atLeast Logger.Warn collecting
-
+      logged <- newIORef []
+      let logger = Logger.atLeast Logger.Warn (Logger.Collecting.new logged)
       Logger.logDebug logger "hidden"
       Logger.logError logger "shown"
-      readIORef ref `shouldReturn` [(Logger.Error, "shown")]
+      readIORef logged `shouldReturn` [(Logger.Error, "shown")]
 
     it "keeps a message within threshold" $ do
-      ref <- newIORef []
-      let collecting = Logger.Handle $ \level msg -> modifyIORef' ref ((level, msg) :)
-          logger = Logger.atLeast Logger.Debug collecting
-
+      logged <- newIORef []
+      let logger = Logger.atLeast Logger.Debug (Logger.Collecting.new logged)
       Logger.logDebug logger "shown"
       Logger.logError logger "shown"
-      readIORef ref `shouldReturn` [(Logger.Error, "shown"), (Logger.Debug, "shown")]
+      readIORef logged `shouldReturn` [(Logger.Debug, "shown"), (Logger.Error, "shown")]
 
   describe "Logger.withPrefix" $ do
     it "prepends a prefix on logs" $ do
-      ref <- newIORef []
-      let collecting = Logger.Handle $ \level msg -> modifyIORef' ref ((level, msg) :)
-          logger = Logger.withPrefix "[api] " collecting
-
+      logged <- newIORef []
+      let logger = Logger.withPrefix "[api] " (Logger.Collecting.new logged)
       Logger.logInfo logger "prefixed log test"
-      readIORef ref `shouldReturn` [(Logger.Info, "[api] prefixed log test")]
+      readIORef logged `shouldReturn` [(Logger.Info, "[api] prefixed log test")]
 
 -- Email parser tests
 emailSpec :: Spec

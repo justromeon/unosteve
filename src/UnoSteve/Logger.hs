@@ -3,7 +3,6 @@ module UnoSteve.Logger
   , parseLevel
   , renderLevel
   , Handle (..)
-  , noop
   , atLeast
   , withPrefix
   , logDebug
@@ -39,9 +38,6 @@ parseLevel = \case
 newtype Handle = Handle
   { logAt :: Level -> Text -> IO ()
   }
-
-noop :: Handle
-noop = Handle $ \_ _ -> pure ()
 
 atLeast :: Level -> Handle -> Handle
 atLeast threshold h = Handle $ \level msg ->

@@ -42,6 +42,8 @@ library
     UnoSteve.Domain.User
     UnoSteve.Env
     UnoSteve.Logger
+    UnoSteve.Logger.Collecting
+    UnoSteve.Logger.Noop
     UnoSteve.Logger.Stdout
     UnoSteve.Secret
 
