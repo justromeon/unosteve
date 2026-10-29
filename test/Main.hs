@@ -10,17 +10,19 @@ import Test.Hspec
 import Data.Either (isLeft, isRight)
 import UnoSteve.Database qualified as Database
 import UnoSteve.Database.Users qualified as Database.Users
-import UnoSteve.Domain.Password (mkPassword)
+import UnoSteve.Domain.Password (Password, mkPassword)
 import UnoSteve.Domain.User
   ( Email
   , NewUser (..)
   , PasswordHash (..)
   , User (..)
   , emailText
+  , hashText
   , mkEmail
   )
 import UnoSteve.Logger qualified as Logger
 import UnoSteve.Logger.Collecting qualified as Logger.Collecting
+import UnoSteve.PasswordHasher qualified as PasswordHasher
 import UnoSteve.Secret (Secret (..))
 
 testEmail :: Text -> Email
@@ -36,6 +38,7 @@ main = do
     emailSpec
     describe "Database.Users" $ postgresSpec usersSpec
     passwordSpec
+    passwordHasherSpec
 
 -- Logger tests
 loggerSpec :: Spec
@@ -112,3 +115,23 @@ passwordSpec = describe "mkPassword" $ do
     isRight (mkPassword "0123456789") `shouldBe` True
   it "rejects passwords longer than 128 characters" $
     isLeft (mkPassword (T.replicate 129 "a")) `shouldBe` True
+
+testPassword :: Text -> Password
+testPassword raw = either (error . T.unpack) id (mkPassword raw)
+
+-- Real argon2 at the lowest cost it allows (8 KiB per thread, 1 pass): milliseconds
+-- instead of ~0.1 s per hash.
+testHasherConfig :: PasswordHasher.Config
+testHasherConfig = PasswordHasher.Config{PasswordHasher.memoryKiB = 8, PasswordHasher.iterations = 1}
+
+passwordHasherSpec :: Spec
+passwordHasherSpec = describe "PasswordHasher" $ do
+  it "stores the algorithm and its parameters with the hash" $ do
+    hasher <- PasswordHasher.new testHasherConfig
+    stored <- PasswordHasher.hash hasher (testPassword "correct horse battery")
+    T.isPrefixOf "$argon2id$v=19$m=8,t=1,p=1$" (hashText stored) `shouldBe` True
+
+  it "rejects every password when there is no stored hash" $ do
+    hasher <- PasswordHasher.new testHasherConfig
+    PasswordHasher.verify hasher (testPassword "unosteve timing-equalization dummy") Nothing
+      `shouldBe` False
