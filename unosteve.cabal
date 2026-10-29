@@ -39,6 +39,7 @@ library
     UnoSteve.Config
     UnoSteve.Database
     UnoSteve.Database.Users
+    UnoSteve.Domain.Password
     UnoSteve.Domain.User
     UnoSteve.Env
     UnoSteve.Logger

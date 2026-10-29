@@ -7,8 +7,10 @@ import Hasql.Session qualified as Session
 import System.Environment (lookupEnv)
 import Test.Hspec
 
+import Data.Either (isLeft, isRight)
 import UnoSteve.Database qualified as Database
 import UnoSteve.Database.Users qualified as Database.Users
+import UnoSteve.Domain.Password (mkPassword)
 import UnoSteve.Domain.User
   ( Email
   , NewUser (..)
@@ -33,6 +35,7 @@ main = do
     loggerSpec
     emailSpec
     describe "Database.Users" $ postgresSpec usersSpec
+    passwordSpec
 
 -- Logger tests
 loggerSpec :: Spec
@@ -69,8 +72,6 @@ emailSpec = do
       isLeft (mkEmail "justin.example.com") `shouldBe` True
     it "rejects more than one @" $
       isLeft (mkEmail "a@b@c") `shouldBe` True
- where
-  isLeft = either (const True) (const False)
 
 -- Database tests
 usersSpec :: SpecWith Database.Handle
@@ -91,7 +92,7 @@ usersSpec = do
   it "returns Nothing for an unknown email" $ \db ->
     Database.Users.findByEmail db (testEmail "unknown@email.com") `shouldReturn` Nothing
 
--- \| Each test gets a fresh pool and empty tables. Pending when TEST_DATABASE_URL is unset.
+-- Each test gets a fresh pool and empty tables. Pending when TEST_DATABASE_URL is unset.
 postgresSpec :: SpecWith Database.Handle -> Spec
 postgresSpec spec = do
   testDatabaseUrl <- runIO (lookupEnv "TEST_DATABASE_URL")
@@ -101,3 +102,13 @@ postgresSpec spec = do
       Database.withHandle (Database.Config (Secret (T.pack url)) 2) $ \db -> do
         Database.runOrThrow db (Session.sql "TRUNCATE users")
         test db
+
+-- Auth tests
+passwordSpec :: Spec
+passwordSpec = describe "mkPassword" $ do
+  it "rejects passwords shorter than 10 characters" $
+    isLeft (mkPassword "short") `shouldBe` True
+  it "accepts a 10-character password" $
+    isRight (mkPassword "0123456789") `shouldBe` True
+  it "rejects passwords longer than 128 characters" $
+    isLeft (mkPassword (T.replicate 129 "a")) `shouldBe` True
