@@ -103,7 +103,7 @@ postgresSpec spec = do
     Nothing -> it "needs Postgres" $ pendingWith "set TEST_DATABASE_URL to run"
     Just url -> flip around spec $ \test ->
       Database.withHandle (Database.Config (Secret (T.pack url)) 2) $ \db -> do
-        Database.runOrThrow db (Session.sql "TRUNCATE users")
+        Database.runOrThrow db (Session.sql "TRUNCATE users, sessions")
         test db
 
 -- Auth tests
