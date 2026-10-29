@@ -36,6 +36,10 @@ library
   import:          shared
   exposed-modules:
     UnoSteve.Api
+    UnoSteve.Clock
+    UnoSteve.Clock.Fixed
+    UnoSteve.Clock.Settable
+    UnoSteve.Clock.System
     UnoSteve.Config
     UnoSteve.Database
     UnoSteve.Database.Users
