@@ -11,6 +11,7 @@ module UnoSteve.Domain.User
   , defaultQuotaBytes
   ) where
 
+import Data.Aeson (FromJSON (parseJSON), withText)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -22,6 +23,9 @@ newtype UserId = UserId UUID
 
 newtype Email = Email Text
   deriving newtype (Eq, Ord, Show)
+
+instance FromJSON Email where
+  parseJSON = withText "Email" (either (fail . T.unpack) pure . mkEmail)
 
 mkEmail :: Text -> Either Text Email
 mkEmail raw
