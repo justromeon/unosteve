@@ -8,8 +8,9 @@ import System.Environment (lookupEnv)
 import Test.Hspec
 
 import Data.Either (isLeft, isRight)
-import Data.Time (UTCTime (UTCTime), addUTCTime, fromGregorian, nominalDay)
+import Data.Time (NominalDiffTime, UTCTime (UTCTime), addUTCTime, fromGregorian, nominalDay)
 
+import Data.Foldable (for_)
 import UnoSteve.Auth qualified as Auth
 import UnoSteve.Clock.Fixed qualified as Clock.Fixed
 import UnoSteve.Clock.Settable qualified as Clock.Settable
@@ -153,7 +154,7 @@ t0 :: UTCTime
 t0 = UTCTime (fromGregorian 2026 1 1) 0
 
 sessionConfig :: Sessions.Config
-sessionConfig = Sessions.Config{Sessions.ttl = 7 * nominalDay}
+sessionConfig = Sessions.Config{Sessions.ttl = 7 * nominalDay, Sessions.maxAge = 30 * nominalDay}
 
 -- Each test gets a clock it controls, a sessions handle, and a real user to log in.
 sessionsSetup :: Database.Handle -> IO (IORef UTCTime, Sessions.Handle, UserId)
@@ -162,6 +163,10 @@ sessionsSetup db = do
   let sessions = Sessions.new sessionConfig db (Clock.Settable.new clockRef)
   Right justin <- Database.Users.create db (testUser "justin@example.com")
   pure (clockRef, sessions, justin.userId)
+
+-- | Move the test clock to n days after t0.
+setDay :: IORef UTCTime -> NominalDiffTime -> IO ()
+setDay clockRef n = writeIORef clockRef (addUTCTime (n * nominalDay) t0)
 
 sessionsSpec :: SpecWith (IORef UTCTime, Sessions.Handle, UserId)
 sessionsSpec = do
@@ -197,6 +202,29 @@ sessionsSpec = do
     (token, session) <- Sessions.start sessions justin
     Sessions.end sessions session
     Sessions.authenticate sessions token `shouldReturn` Nothing
+
+  it "ends a session at its absolute expiry, however active it is" $ \(clockRef, sessions, justin) -> do
+    (token, _) <- Sessions.start sessions justin
+    -- Used every 4 days: each use is within the idle limit, so it stays alive...
+    for_ [4, 8, 12, 16, 20, 24, 28] $ \n -> do
+      setDay clockRef n
+      fmap (.userId) <$> Sessions.authenticate sessions token `shouldReturn` Just justin
+    -- ...until day 30, 30 days after login.
+    setDay clockRef 30
+    Sessions.authenticate sessions token `shouldReturn` Nothing
+    -- Back to day 29: had the row survived, the token would be valid again.
+    setDay clockRef 29
+    Sessions.authenticate sessions token `shouldReturn` Nothing
+
+  it "never renews past the absolute expiry" $ \(clockRef, sessions, justin) -> do
+    (token, _) <- Sessions.start sessions justin
+    for_ [4, 8, 12, 16, 20] $ \n -> do
+      setDay clockRef n
+      Sessions.authenticate sessions token
+    -- Due for renewal on day 24: a full TTL would reach day 31, but the cap is day 30.
+    setDay clockRef 24
+    fmap (.expiresAt) <$> Sessions.authenticate sessions token
+      `shouldReturn` Just (addUTCTime (30 * nominalDay) t0)
 
 authSetup :: Database.Handle -> IO (Database.Handle, PasswordHasher.Handle, Sessions.Handle)
 authSetup db = do

@@ -21,9 +21,11 @@ import UnoSteve.Database.Sessions qualified as Database.Sessions
 import UnoSteve.Domain.Session (Session (..), SessionToken (..), tokenText)
 import UnoSteve.Domain.User (UserId)
 
-newtype Config = Config
+data Config = Config
   { ttl :: NominalDiffTime
   -- ^ How long an unused session lives.
+  , maxAge :: NominalDiffTime
+  -- ^ Absolute limit of how long a session lives
   }
   deriving stock (Show)
 
@@ -42,7 +44,8 @@ start :: Handle -> UserId -> IO (SessionToken, Session)
 start h uid = do
   token <- generateToken
   now <- h.clock.now
-  session <- Database.Sessions.create h.database (hashToken token) uid (addUTCTime h.config.ttl now)
+  session <-
+    Database.Sessions.create h.database (hashToken token) uid now (addUTCTime h.config.ttl now)
   pure (token, session)
 
 {- | The session behind this token, if it exists and hasn't expired.
@@ -55,14 +58,19 @@ authenticate h token = do
   case found of
     Nothing -> pure Nothing
     Just session
-      | session.expiresAt <= now -> do
-          end h session -- tidy up; Step 8's cleanup job sweeps sessions nobody presents again
+      | session.expiresAt <= now || absoluteExpiry <= now -> do
+          end h session
           pure Nothing
-      | diffUTCTime session.expiresAt now < h.config.ttl / 2 -> do
-          let renewed = addUTCTime h.config.ttl now
+      | dueForRenewal && renewed > session.expiresAt -> do
           Database.Sessions.setExpiresAt h.database session.sessionId renewed
           pure (Just session{expiresAt = renewed})
       | otherwise -> pure (Just session)
+     where
+      absoluteExpiry = addUTCTime h.config.maxAge session.createdAt
+      -- Past half its idle lifetime: renew now, rather than on every request.
+      dueForRenewal = diffUTCTime session.expiresAt now < h.config.ttl / 2
+      -- Slide the idle expiry forward, but never past the absolute one.
+      renewed = min (addUTCTime h.config.ttl now) absoluteExpiry
 
 -- | Logout: the token stops working immediately.
 end :: Handle -> Session -> IO ()

@@ -87,6 +87,7 @@ load = do
   let eitherSessionsConfig =
         Sessions.Config
           <$> maybe (Right $ 7 * nominalDay) (parseSeconds "SESSION_TTL") (Map.lookup "SESSION_TTL" env)
+          <*> maybe (Right $ 30 * nominalDay) (parseSeconds "SESSION_MAX_AGE") (Map.lookup "SESSION_MAX_AGE" env)
 
   let eitherDatabaseConfig =
         (Database.Config . Secret <$> getVar "DATABASE_URL")
