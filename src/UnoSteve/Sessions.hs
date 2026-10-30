@@ -5,6 +5,7 @@ module UnoSteve.Sessions
   , start
   , authenticate
   , end
+  , endAll
   ) where
 
 import Crypto.Hash (SHA256 (..), hashWith)
@@ -75,6 +76,9 @@ authenticate h token = do
 -- | Logout: the token stops working immediately.
 end :: Handle -> Session -> IO ()
 end h session = Database.Sessions.delete h.database session.sessionId
+
+endAll :: Handle -> UserId -> IO ()
+endAll h uid = Database.Sessions.deleteByUserId h.database uid
 
 -- | 32 bytes from the operating system's secure random generator, base64url-encoded.
 generateToken :: IO SessionToken

@@ -5,10 +5,11 @@ module UnoSteve.Database.Sessions
   , findByTokenHash
   , setExpiresAt
   , delete
+  , deleteByUserId
   ) where
 
 import Data.ByteString (ByteString)
-import Data.Profunctor (dimap, rmap)
+import Data.Profunctor (Profunctor (lmap), dimap, rmap)
 import Data.Time (UTCTime)
 import Data.UUID (UUID)
 import Hasql.Session qualified as Hasql
@@ -32,6 +33,9 @@ setExpiresAt db sid expires = Database.runOrThrow db (Hasql.statement (sid, expi
 
 delete :: Database.Handle -> UUID -> IO ()
 delete db sid = Database.runOrThrow db (Hasql.statement sid deleteSession)
+
+deleteByUserId :: Database.Handle -> UserId -> IO ()
+deleteByUserId db uid = Database.runOrThrow db (Hasql.statement uid deleteSessionsOfUser)
 
 -- Statements
 type SessionRow = (UUID, UUID, UTCTime, UTCTime)
@@ -71,4 +75,12 @@ deleteSession :: Statement UUID ()
 deleteSession =
   [resultlessStatement|
     delete from sessions where id = $1 :: uuid
+  |]
+
+deleteSessionsOfUser :: Statement UserId ()
+deleteSessionsOfUser =
+  lmap
+    (\(UserId uuid) -> uuid)
+    [resultlessStatement|
+    delete from sessions where user_id = $1 :: uuid
   |]

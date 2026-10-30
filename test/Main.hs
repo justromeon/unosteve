@@ -226,6 +226,13 @@ sessionsSpec = do
     fmap (.expiresAt) <$> Sessions.authenticate sessions token
       `shouldReturn` Just (addUTCTime (30 * nominalDay) t0)
 
+  it "ends every session of a user" $ \(_, sessions, justin) -> do
+    (laptop, _) <- Sessions.start sessions justin
+    (phone, _) <- Sessions.start sessions justin
+    Sessions.endAll sessions justin
+    Sessions.authenticate sessions laptop `shouldReturn` Nothing
+    Sessions.authenticate sessions phone `shouldReturn` Nothing
+
 authSetup :: Database.Handle -> IO (Database.Handle, PasswordHasher.Handle, Sessions.Handle)
 authSetup db = do
   hasher <- PasswordHasher.new testHasherConfig
