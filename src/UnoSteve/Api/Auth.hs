@@ -1,7 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module UnoSteve.Api.Auth where
+module UnoSteve.Api.Auth
+  ( AuthApi
+  , MeApi
+  , authServer
+  , meServer
+  , authHandler
+  ) where
 
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON, ToJSON (toJSON), object, (.=))

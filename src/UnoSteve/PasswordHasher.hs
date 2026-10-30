@@ -1,11 +1,10 @@
 module UnoSteve.PasswordHasher
   ( Config (..)
   , defaultConfig
-  , Handle (..)
+  , Handle
   , new
   , verify
   , hash
-  , hashWith
   ) where
 
 import Data.Password.Argon2 qualified as Argon2
