@@ -12,15 +12,18 @@ import Data.Text.Read (decimal)
 import System.Environment (getEnvironment)
 import System.Exit (die)
 
+import Data.Time (NominalDiffTime)
 import UnoSteve.Database qualified as Database
 import UnoSteve.Logger qualified as Logger
 import UnoSteve.Logger.Stdout qualified as Logger.Stdout
 import UnoSteve.Secret (Secret (..))
+import UnoSteve.Sessions qualified as Sessions
 
 data Config = Config
   { port :: Int
   , logger :: Logger.Stdout.Config
   , database :: Database.Config
+  , sessions :: Sessions.Config
   , s3 :: S3Config
   }
   deriving (Show)
@@ -50,6 +53,11 @@ parsePort t = case decimal t of
   Right (p, "") | p > 0 && p < 65536 -> Right p
   _ -> Left $ "PORT must be a number between 1 and 65535, got: " <> t
 
+parseSeconds :: Text -> Text -> Either Text NominalDiffTime
+parseSeconds name t = case decimal t of
+  Right (n :: Integer, "") | n > 0 -> Right (fromInteger n)
+  _ -> Left $ name <> " must be a positive number of seconds, got: " <> t
+
 load :: IO Config
 load = do
   env <- Map.map T.pack . Map.fromList <$> getEnvironment
@@ -76,6 +84,10 @@ load = do
         Logger.Stdout.Config
           <$> maybe (Right Logger.Info) Logger.parseLevel (Map.lookup "LOG_LEVEL" env)
 
+  let eitherSessionsConfig =
+        Sessions.Config
+          <$> maybe (Right 604800) (parseSeconds "SESSION_TTL") (Map.lookup "SESSION_TTL" env)
+
   let eitherDatabaseConfig =
         (Database.Config . Secret <$> getVar "DATABASE_URL")
           <*> pure 10
@@ -85,6 +97,7 @@ load = do
           <$> (getVar "PORT" >>= parsePort)
           <*> eitherLoggerConfig
           <*> eitherDatabaseConfig
+          <*> eitherSessionsConfig
           <*> eitherS3Config
 
   case eitherConfig of
