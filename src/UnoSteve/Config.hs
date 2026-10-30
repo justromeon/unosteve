@@ -12,7 +12,7 @@ import Data.Text.Read (decimal)
 import System.Environment (getEnvironment)
 import System.Exit (die)
 
-import Data.Time (NominalDiffTime)
+import Data.Time (NominalDiffTime, nominalDay)
 import UnoSteve.Database qualified as Database
 import UnoSteve.Logger qualified as Logger
 import UnoSteve.Logger.Stdout qualified as Logger.Stdout
@@ -86,7 +86,7 @@ load = do
 
   let eitherSessionsConfig =
         Sessions.Config
-          <$> maybe (Right 604800) (parseSeconds "SESSION_TTL") (Map.lookup "SESSION_TTL" env)
+          <$> maybe (Right $ 7 * nominalDay) (parseSeconds "SESSION_TTL") (Map.lookup "SESSION_TTL" env)
 
   let eitherDatabaseConfig =
         (Database.Config . Secret <$> getVar "DATABASE_URL")

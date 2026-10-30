@@ -8,7 +8,7 @@ import System.Environment (lookupEnv)
 import Test.Hspec
 
 import Data.Either (isLeft, isRight)
-import Data.Time (NominalDiffTime, UTCTime (UTCTime), addUTCTime, fromGregorian)
+import Data.Time (UTCTime (UTCTime), addUTCTime, fromGregorian, nominalDay)
 
 import UnoSteve.Auth qualified as Auth
 import UnoSteve.Clock.Fixed qualified as Clock.Fixed
@@ -152,11 +152,8 @@ passwordHasherSpec = describe "PasswordHasher" $ do
 t0 :: UTCTime
 t0 = UTCTime (fromGregorian 2026 1 1) 0
 
-day :: NominalDiffTime
-day = 24 * 60 * 60
-
 sessionConfig :: Sessions.Config
-sessionConfig = Sessions.Config{Sessions.ttl = 7 * day}
+sessionConfig = Sessions.Config{Sessions.ttl = 7 * nominalDay}
 
 -- Each test gets a clock it controls, a sessions handle, and a real user to log in.
 sessionsSetup :: Database.Handle -> IO (IORef UTCTime, Sessions.Handle, UserId)
@@ -177,7 +174,7 @@ sessionsSpec = do
 
   it "rejects an expired session and deletes it" $ \(clockRef, sessions, justin) -> do
     (token, _) <- Sessions.start sessions justin
-    modifyIORef' clockRef (addUTCTime (7 * day))
+    modifyIORef' clockRef (addUTCTime (7 * nominalDay))
     Sessions.authenticate sessions token `shouldReturn` Nothing
     -- Back in time: had the row survived, the token would be valid again.
     writeIORef clockRef t0
@@ -185,16 +182,16 @@ sessionsSpec = do
 
   it "leaves a fresh session's expiry alone" $ \(clockRef, sessions, justin) -> do
     (token, started) <- Sessions.start sessions justin
-    modifyIORef' clockRef (addUTCTime day)
+    modifyIORef' clockRef (addUTCTime nominalDay)
     fmap (.expiresAt) <$> Sessions.authenticate sessions token `shouldReturn` Just started.expiresAt
 
   it "renews a session past half its lifetime" $ \(clockRef, sessions, justin) -> do
     (token, _) <- Sessions.start sessions justin
-    modifyIORef' clockRef (addUTCTime (4 * day))
+    modifyIORef' clockRef (addUTCTime (4 * nominalDay))
     _ <- Sessions.authenticate sessions token
     -- A second read shows the renewal was stored, not just returned.
     fmap (.expiresAt) <$> Sessions.authenticate sessions token
-      `shouldReturn` Just (addUTCTime (11 * day) t0)
+      `shouldReturn` Just (addUTCTime (11 * nominalDay) t0)
 
   it "ends a session" $ \(_, sessions, justin) -> do
     (token, session) <- Sessions.start sessions justin
