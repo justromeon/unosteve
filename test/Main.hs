@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Data.IORef (newIORef, readIORef)
+import Data.IORef (IORef, modifyIORef', newIORef, readIORef, writeIORef)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Hasql.Session qualified as Session
@@ -8,14 +8,20 @@ import System.Environment (lookupEnv)
 import Test.Hspec
 
 import Data.Either (isLeft, isRight)
+import Data.Time (NominalDiffTime, UTCTime (UTCTime), addUTCTime, fromGregorian)
+
+import UnoSteve.Clock.Settable qualified as Clock.Settable
 import UnoSteve.Database qualified as Database
 import UnoSteve.Database.Users qualified as Database.Users
 import UnoSteve.Domain.Password (Password, mkPassword)
+import UnoSteve.Domain.Session (SessionToken (SessionToken))
+import UnoSteve.Domain.Session qualified as Domain.Sessions
 import UnoSteve.Domain.User
   ( Email
   , NewUser (..)
   , PasswordHash (..)
   , User (..)
+  , UserId
   , emailText
   , hashText
   , mkEmail
@@ -24,6 +30,7 @@ import UnoSteve.Logger qualified as Logger
 import UnoSteve.Logger.Collecting qualified as Logger.Collecting
 import UnoSteve.PasswordHasher qualified as PasswordHasher
 import UnoSteve.Secret (Secret (..))
+import UnoSteve.Sessions qualified as Sessions
 
 testEmail :: Text -> Email
 testEmail raw = either (error . T.unpack) id (mkEmail raw)
@@ -39,6 +46,8 @@ main = do
     describe "Database.Users" $ postgresSpec usersSpec
     passwordSpec
     passwordHasherSpec
+    describe "Sessions" $
+      postgresSpec (beforeWith sessionsSetup sessionsSpec)
 
 -- Logger tests
 loggerSpec :: Spec
@@ -135,3 +144,55 @@ passwordHasherSpec = describe "PasswordHasher" $ do
     hasher <- PasswordHasher.new testHasherConfig
     PasswordHasher.verify hasher (testPassword "unosteve timing-equalization dummy") Nothing
       `shouldBe` False
+
+t0 :: UTCTime
+t0 = UTCTime (fromGregorian 2026 1 1) 0
+
+day :: NominalDiffTime
+day = 24 * 60 * 60
+
+sessionConfig :: Sessions.Config
+sessionConfig = Sessions.Config{Sessions.ttl = 7 * day}
+
+-- Each test gets a clock it controls, a sessions handle, and a real user to log in.
+sessionsSetup :: Database.Handle -> IO (IORef UTCTime, Sessions.Handle, UserId)
+sessionsSetup db = do
+  clockRef <- newIORef t0
+  let sessions = Sessions.new sessionConfig db (Clock.Settable.new clockRef)
+  Right justin <- Database.Users.create db (testUser "justin@example.com")
+  pure (clockRef, sessions, justin.userId)
+
+sessionsSpec :: SpecWith (IORef UTCTime, Sessions.Handle, UserId)
+sessionsSpec = do
+  it "authenticates a token it started" $ \(_, sessions, justin) -> do
+    (token, _) <- Sessions.start sessions justin
+    fmap Domain.Sessions.userId <$> Sessions.authenticate sessions token `shouldReturn` Just justin
+
+  it "rejects an unknown token" $ \(_, sessions, _) ->
+    Sessions.authenticate sessions (SessionToken "not-a-real-token") `shouldReturn` Nothing
+
+  it "rejects an expired session and deletes it" $ \(clockRef, sessions, justin) -> do
+    (token, _) <- Sessions.start sessions justin
+    modifyIORef' clockRef (addUTCTime (7 * day))
+    Sessions.authenticate sessions token `shouldReturn` Nothing
+    -- Back in time: had the row survived, the token would be valid again.
+    writeIORef clockRef t0
+    Sessions.authenticate sessions token `shouldReturn` Nothing
+
+  it "leaves a fresh session's expiry alone" $ \(clockRef, sessions, justin) -> do
+    (token, started) <- Sessions.start sessions justin
+    modifyIORef' clockRef (addUTCTime day)
+    fmap (.expiresAt) <$> Sessions.authenticate sessions token `shouldReturn` Just started.expiresAt
+
+  it "renews a session past half its lifetime" $ \(clockRef, sessions, justin) -> do
+    (token, _) <- Sessions.start sessions justin
+    modifyIORef' clockRef (addUTCTime (4 * day))
+    _ <- Sessions.authenticate sessions token
+    -- A second read shows the renewal was stored, not just returned.
+    fmap (.expiresAt) <$> Sessions.authenticate sessions token
+      `shouldReturn` Just (addUTCTime (11 * day) t0)
+
+  it "ends a session" $ \(_, sessions, justin) -> do
+    (token, session) <- Sessions.start sessions justin
+    Sessions.end sessions session
+    Sessions.authenticate sessions token `shouldReturn` Nothing
