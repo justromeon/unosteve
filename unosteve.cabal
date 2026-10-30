@@ -94,8 +94,16 @@ executable unosteve
 
 test-suite unosteve-test
   import:         shared
+  other-modules:
+    Test.Support
+    UnoSteve.AuthSpec
+    UnoSteve.Database.UsersSpec
+    UnoSteve.Domain.PasswordSpec
+    UnoSteve.Domain.UserSpec
+    UnoSteve.LoggerSpec
+    UnoSteve.PasswordHasherSpec
+    UnoSteve.SessionsSpec
 
-  -- other-modules:
   -- other-extensions:
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
