@@ -35,6 +35,7 @@ type AuthApi =
     :> ( "register" :> ReqBody '[JSON] Registration :> PostCreated '[JSON] UserResponse
            :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] LoginResponse
            :<|> "logout" :> AuthProtect "session" :> PostNoContent
+           :<|> "logout-all" :> AuthProtect "session" :> PostNoContent
        )
 
 type MeApi = "me" :> AuthProtect "session" :> Get '[JSON] UserResponse
@@ -85,6 +86,7 @@ authServer hasher db sessions =
   registerHandler hasher db
     :<|> loginHandler hasher db sessions
     :<|> logoutHandler sessions
+    :<|> logoutAllHandler sessions
 
 registerHandler :: PasswordHasher.Handle -> Database.Handle -> Registration -> Handler UserResponse
 registerHandler hasher db reg = do
@@ -107,6 +109,9 @@ loginHandler hasher db s cred = do
 
 logoutHandler :: Sessions.Handle -> Session -> Handler NoContent
 logoutHandler sessions session = NoContent <$ liftIO (Sessions.end sessions session)
+
+logoutAllHandler :: Sessions.Handle -> Session -> Handler NoContent
+logoutAllHandler sessions session = NoContent <$ liftIO (Sessions.endAll sessions session.userId)
 
 meServer :: Database.Handle -> Server MeApi
 meServer db session = do
