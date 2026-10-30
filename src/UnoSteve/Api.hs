@@ -1,7 +1,7 @@
 module UnoSteve.Api
   ( API
   , api
-  , server
+  , app
   ) where
 
 import Control.Exception (SomeException, try)
@@ -12,7 +12,11 @@ import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Servant
 
+import Network.Wai (Request)
+import Servant.Server.Experimental.Auth (AuthHandler)
+import UnoSteve.Api.Auth (AuthApi, MeApi, authHandler, authServer, meServer)
 import UnoSteve.Database qualified as Database
+import UnoSteve.Domain.Session (Session)
 import UnoSteve.Env (Env)
 import UnoSteve.Env qualified as Env
 import UnoSteve.Logger qualified as Logger
@@ -30,15 +34,25 @@ type API =
   "healthz" :> Get '[JSON] Health
     :<|> "readyz" :> Get '[JSON] Health
     :<|> "version" :> Get '[JSON] Version
+    :<|> "api" :> "v1" :> (AuthApi :<|> MeApi)
 
 api :: Proxy API
 api = Proxy
+
+app :: Env -> Application
+app env = serveWithContext api (context env) (server env)
+
+context :: Env -> Context '[AuthHandler Request Session]
+context env = authHandler env.sessions :. EmptyContext
 
 server :: Env -> Server API
 server env =
   healthHandler env.logger
     :<|> readyHandler env.logger env.database
     :<|> versionHandler
+    :<|> ( authServer env.passwordHasher env.database env.sessions
+             :<|> meServer env.database
+         )
 
 healthHandler :: Logger.Handle -> Handler Health
 healthHandler logger = do

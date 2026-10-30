@@ -4,6 +4,7 @@ module UnoSteve.Domain.Password
   , passwordText
   ) where
 
+import Data.Aeson (FromJSON (parseJSON), withText)
 import Data.Text (Text)
 import Data.Text qualified as T
 
@@ -11,6 +12,9 @@ newtype Password = Password Text
 
 instance Show Password where
   show _ = "<password>"
+
+instance FromJSON Password where
+  parseJSON = withText "Password" (either (fail . T.unpack) pure . mkPassword)
 
 mkPassword :: Text -> Either Text Password
 mkPassword raw
