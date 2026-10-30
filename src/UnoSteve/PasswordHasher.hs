@@ -12,6 +12,7 @@ import Data.Password.Argon2 qualified as Argon2
 import Data.Word (Word32)
 
 import Data.Maybe (fromMaybe, isJust)
+import Data.Text (Text)
 import UnoSteve.Domain.Password (Password, passwordText)
 import UnoSteve.Domain.User (PasswordHash (..), hashText)
 
@@ -44,11 +45,15 @@ new cfg = do
   dummy <- hashWith argonParams (Argon2.mkPassword "unosteve timing-equalization dummy")
   pure (Handle argonParams dummy)
 
--- | Check against dummy hash when no stored for argon2 to still take time
-verify :: Handle -> Password -> Maybe PasswordHash -> Bool
-verify h password stored =
+{- | Check against dummy hash when no stored so that argon2 will still take time.
+The attempt is plain Text, deliberately not parsed with mkPassword: if the password
+policy ever gets stricter (say a longer minimum), passwords created under the old
+policy must keep working
+-}
+verify :: Handle -> Text -> Maybe PasswordHash -> Bool
+verify h attempt stored =
   case Argon2.checkPassword
-    (Argon2.mkPassword $ passwordText password)
+    (Argon2.mkPassword attempt)
     (Argon2.PasswordHash $ hashText $ fromMaybe h.dummyHash stored) of
     Argon2.PasswordCheckSuccess -> isJust stored
     Argon2.PasswordCheckFail -> False

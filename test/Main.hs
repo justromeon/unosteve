@@ -10,6 +10,8 @@ import Test.Hspec
 import Data.Either (isLeft, isRight)
 import Data.Time (NominalDiffTime, UTCTime (UTCTime), addUTCTime, fromGregorian)
 
+import UnoSteve.Auth qualified as Auth
+import UnoSteve.Clock.Fixed qualified as Clock.Fixed
 import UnoSteve.Clock.Settable qualified as Clock.Settable
 import UnoSteve.Database qualified as Database
 import UnoSteve.Database.Users qualified as Database.Users
@@ -48,6 +50,8 @@ main = do
     passwordHasherSpec
     describe "Sessions" $
       postgresSpec (beforeWith sessionsSetup sessionsSpec)
+    describe "Auth" $
+      postgresSpec (beforeWith authSetup authSpec)
 
 -- Logger tests
 loggerSpec :: Spec
@@ -142,7 +146,7 @@ passwordHasherSpec = describe "PasswordHasher" $ do
 
   it "rejects every password when there is no stored hash" $ do
     hasher <- PasswordHasher.new testHasherConfig
-    PasswordHasher.verify hasher (testPassword "unosteve timing-equalization dummy") Nothing
+    PasswordHasher.verify hasher "unosteve timing-equalization dummy" Nothing
       `shouldBe` False
 
 t0 :: UTCTime
@@ -196,3 +200,42 @@ sessionsSpec = do
     (token, session) <- Sessions.start sessions justin
     Sessions.end sessions session
     Sessions.authenticate sessions token `shouldReturn` Nothing
+
+authSetup :: Database.Handle -> IO (Database.Handle, PasswordHasher.Handle, Sessions.Handle)
+authSetup db = do
+  hasher <- PasswordHasher.new testHasherConfig
+  let sessions = Sessions.new sessionConfig db (Clock.Fixed.new t0)
+  pure (db, hasher, sessions)
+
+authSpec :: SpecWith (Database.Handle, PasswordHasher.Handle, Sessions.Handle)
+authSpec = do
+  describe "register" $ do
+    it "stores an argon2 hash, never the plain password" $ \(db, hasher, _) -> do
+      Right user <- Auth.register hasher db justin correctHorse
+      T.isPrefixOf "$argon2id$" (hashText user.passwordHash) `shouldBe` True
+
+    it "rejects a duplicate email" $ \(db, hasher, _) -> do
+      _ <- Auth.register hasher db justin correctHorse
+      Auth.register hasher db (testEmail "Justin@Example.com") (testPassword "another long password")
+        `shouldReturn` Left Database.Users.EmailTaken
+
+  describe "login" $ do
+    it "starts a session for the right password" $ \(db, hasher, sessions) -> do
+      Right user <- Auth.register hasher db justin correctHorse
+      Right (token, _) <- Auth.login hasher db sessions justin "correct horse battery"
+      fmap (.userId) <$> Sessions.authenticate sessions token `shouldReturn` Just user.userId
+
+    it "gives every failure the same error" $ \(db, hasher, sessions) -> do
+      _ <- Auth.register hasher db justin correctHorse
+      let attempts =
+            [ (justin, "wrong horse battery") -- wrong password
+            , (testEmail "nobody@example.com", "correct horse battery") -- unknown email
+            , (justin, "") -- empty password: checked, not rejected by policy
+            ]
+      results <- traverse (uncurry (Auth.login hasher db sessions)) attempts
+      -- Note: SessionToken has no Eq instance
+      [either Just (const Nothing) r | r <- results]
+        `shouldBe` replicate (length attempts) (Just Auth.InvalidCredentials)
+ where
+  justin = testEmail "justin@example.com"
+  correctHorse = testPassword "correct horse battery"
