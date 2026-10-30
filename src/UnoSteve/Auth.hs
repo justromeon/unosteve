@@ -22,8 +22,7 @@ register ::
   IO (Either Database.Users.CreateError User)
 register hasher db emailAdd password = do
   hashed <- PasswordHasher.hash hasher password
-  result <- Database.Users.create db (NewUser emailAdd hashed)
-  pure $ result
+  Database.Users.create db (NewUser emailAdd hashed)
 
 data LoginError = InvalidCredentials
   deriving (Eq, Show)
