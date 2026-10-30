@@ -78,7 +78,7 @@ end :: Handle -> Session -> IO ()
 end h session = Database.Sessions.delete h.database session.sessionId
 
 endAll :: Handle -> UserId -> IO ()
-endAll h uid = Database.Sessions.deleteByUserId h.database uid
+endAll h = Database.Sessions.deleteByUserId h.database
 
 -- | 32 bytes from the operating system's secure random generator, base64url-encoded.
 generateToken :: IO SessionToken
