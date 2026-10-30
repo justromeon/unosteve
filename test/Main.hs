@@ -2,6 +2,7 @@ module Main (main) where
 
 import Test.Hspec
 
+import UnoSteve.ApiSpec qualified
 import UnoSteve.AuthSpec qualified
 import UnoSteve.Database.UsersSpec qualified
 import UnoSteve.Domain.PasswordSpec qualified
@@ -19,3 +20,4 @@ main = hspec $ do
   describe "PasswordHasher" UnoSteve.PasswordHasherSpec.spec
   describe "Sessions" UnoSteve.SessionsSpec.spec
   describe "Auth" UnoSteve.AuthSpec.spec
+  describe "Api" UnoSteve.ApiSpec.spec
