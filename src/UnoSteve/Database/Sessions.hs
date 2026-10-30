@@ -20,9 +20,9 @@ import UnoSteve.Domain.Session (Session (..))
 import UnoSteve.Domain.User (UserId (..))
 
 -- Operations
-create :: Database.Handle -> ByteString -> UserId -> UTCTime -> IO Session
-create db tokenHash uid expires =
-  Database.runOrThrow db (Hasql.statement (tokenHash, uid, expires) insertSession)
+create :: Database.Handle -> ByteString -> UserId -> UTCTime -> UTCTime -> IO Session
+create db tokenHash uid created expires =
+  Database.runOrThrow db (Hasql.statement (tokenHash, uid, created, expires) insertSession)
 
 findByTokenHash :: Database.Handle -> ByteString -> IO (Maybe Session)
 findByTokenHash db tokenHash = Database.runOrThrow db (Hasql.statement tokenHash selectSession)
@@ -40,14 +40,14 @@ toSession :: SessionRow -> Session
 toSession (sid, uuid, created, expires) =
   Session{sessionId = sid, userId = UserId uuid, createdAt = created, expiresAt = expires}
 
-insertSession :: Statement (ByteString, UserId, UTCTime) Session
+insertSession :: Statement (ByteString, UserId, UTCTime, UTCTime) Session
 insertSession =
   dimap
-    (\(tokenHash, UserId uuid, expires) -> (tokenHash, uuid, expires))
+    (\(tokenHash, UserId uuid, created, expires) -> (tokenHash, uuid, created, expires))
     toSession
     [singletonStatement|
-      insert into sessions (token_hash, user_id, expires_at)
-      values ($1 :: bytea, $2 :: uuid, $3 :: timestamptz)
+      insert into sessions (token_hash, user_id, created_at, expires_at)
+      values ($1 :: bytea, $2 :: uuid, $3 :: timestamptz, $4 :: timestamptz)
       returning id :: uuid, user_id :: uuid, created_at :: timestamptz, expires_at :: timestamptz
     |]
 
