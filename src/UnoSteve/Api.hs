@@ -12,7 +12,7 @@ import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Servant
 
-import Network.Wai (Request)
+import Network.Wai (Middleware, Request, mapResponseHeaders, modifyResponse)
 import Servant.Server.Experimental.Auth (AuthHandler)
 import UnoSteve.Api.Auth (AuthApi, MeApi, authHandler, authServer, meServer)
 import UnoSteve.Database qualified as Database
@@ -40,10 +40,14 @@ api :: Proxy API
 api = Proxy
 
 app :: Env -> Application
-app env = serveWithContext api (context env) (server env)
+app env = securityHeaders $ serveWithContext api (context env) (server env)
 
 context :: Env -> Context '[AuthHandler Request Session]
 context env = authHandler env.sessions :. EmptyContext
+
+securityHeaders :: Middleware
+securityHeaders = modifyResponse $ mapResponseHeaders $ \headers ->
+  ("X-Content-Type-Options", "nosniff") : ("Cache-Control", "no-store") : headers
 
 server :: Env -> Server API
 server env =
