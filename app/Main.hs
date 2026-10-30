@@ -21,4 +21,4 @@ main = do
       hasher <- PasswordHasher.new PasswordHasher.defaultConfig
       let sessions = Sessions.new config.sessions database Clock.System.new
       Logger.logInfo logger $ "Listening on port: " <> T.pack (show config.port)
-      run config.port $ app (Env config logger database hasher sessions)
+      run config.port $ app (Env logger database hasher sessions)
