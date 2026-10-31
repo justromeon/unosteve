@@ -26,4 +26,4 @@ main = hspec $ do
   describe "Api" UnoSteve.ApiSpec.spec
   UnoSteve.Domain.NodeSpec.spec
   UnoSteve.Domain.PageSpec.spec
-  UnoSteve.Database.NodesSpec.spec
+  describe "Database.Nodes" UnoSteve.Database.NodesSpec.spec
