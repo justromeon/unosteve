@@ -23,6 +23,8 @@ import UnoSteve.Domain.Node
   , NodeKind (File, Folder)
   , NodeName
   , nodeNameText
+  , nodeUuid
+  , parentUuid
   , unsafeNodeName
   )
 import UnoSteve.Domain.User (UserId (UserId))
@@ -84,19 +86,10 @@ decodeNode (nid, owner, parent, isFolder, rawName, size, mime, created, updated)
       , updatedAt = updated
       }
 
--- | The nullable @parent_id@ column: NULL at the root.
-parentParam :: Location -> Maybe UUID
-parentParam = \case
-  AtRoot -> Nothing
-  InFolder folderId -> Just (nodeUuid folderId)
-
-nodeUuid :: NodeId -> UUID
-nodeUuid (NodeId uuid) = uuid
-
 insertFolder :: Statement (UserId, Location, NodeName) NodeRow
 insertFolder =
   lmap
-    (\(UserId owner, place, folderName) -> (owner, parentParam place, nodeNameText folderName))
+    (\(UserId owner, place, folderName) -> (owner, parentUuid place, nodeNameText folderName))
     [singletonStatement|
       insert into nodes (owner_id, parent_id, kind, name, status)
       values ($1 :: uuid, $2 :: uuid?, 'folder', $3 :: text, 'ready')
@@ -120,7 +113,7 @@ selectNode =
 selectChildren :: Statement (UserId, Location, Int64) (Vector NodeRow)
 selectChildren =
   lmap
-    (\(UserId owner, place, limit) -> (owner, parentParam place, limit))
+    (\(UserId owner, place, limit) -> (owner, parentUuid place, limit))
     [vectorStatement|
       select id :: uuid, owner_id :: uuid, parent_id :: uuid?, (kind = 'folder') :: bool,
         name :: text, size_bytes :: int8?, mime_type :: text?,
@@ -137,7 +130,7 @@ selectChildrenAfter :: Statement (UserId, Location, Cursor, Int64) (Vector NodeR
 selectChildrenAfter =
   lmap
     ( \(UserId owner, place, cursor, limit) ->
-        (owner, parentParam place, cursor.isFile, nodeNameText cursor.name, nodeUuid cursor.nodeId, limit)
+        (owner, parentUuid place, cursor.isFile, nodeNameText cursor.name, nodeUuid cursor.nodeId, limit)
     )
     [vectorStatement|
       select id :: uuid, owner_id :: uuid, parent_id :: uuid?, (kind = 'folder') :: bool,
