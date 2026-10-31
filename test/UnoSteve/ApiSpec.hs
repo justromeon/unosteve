@@ -12,6 +12,8 @@ import Network.Wai.Test (SResponse, simpleBody)
 import Test.Hspec
 import Test.Hspec.Wai (ResponseMatcher (..), WaiSession, request, shouldRespondWith, (<:>))
 
+import Data.IORef (newIORef)
+import Data.Map.Strict qualified as Map
 import Test.Support (postgresSpec, sessionConfig, testHasherConfig)
 import UnoSteve.Api (app)
 import UnoSteve.Clock.System qualified as Clock.System
@@ -20,6 +22,7 @@ import UnoSteve.Env (Env (Env))
 import UnoSteve.Logger.Noop qualified as Logger.Noop
 import UnoSteve.PasswordHasher qualified as PasswordHasher
 import UnoSteve.Sessions qualified as Sessions
+import UnoSteve.Storage.InMemory qualified as Storage.InMemory
 
 spec :: Spec
 spec = postgresSpec (beforeWith setup apiSpec)
@@ -28,8 +31,10 @@ spec = postgresSpec (beforeWith setup apiSpec)
 setup :: Database.Handle -> IO ((), Application)
 setup db = do
   hasher <- PasswordHasher.new testHasherConfig
+  objects <- newIORef Map.empty
   let sessions = Sessions.new sessionConfig db Clock.System.new
-  pure ((), app (Env Logger.Noop.new db hasher sessions))
+      storage = Storage.InMemory.new objects Clock.System.new
+  pure ((), app (Env Logger.Noop.new db hasher sessions storage))
 
 apiSpec :: SpecWith ((), Application)
 apiSpec = do

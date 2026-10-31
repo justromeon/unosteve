@@ -12,6 +12,7 @@ import UnoSteve.Logger qualified as Logger
 import UnoSteve.Logger.Stdout qualified as Logger.Stdout
 import UnoSteve.PasswordHasher qualified as PasswordHasher
 import UnoSteve.Sessions qualified as Sessions
+import UnoSteve.Storage.R2 qualified as Storage.R2
 
 main :: IO ()
 main = do
@@ -20,5 +21,6 @@ main = do
     Database.withHandle config.database $ \database -> do
       hasher <- PasswordHasher.new PasswordHasher.defaultConfig
       let sessions = Sessions.new config.sessions database Clock.System.new
+      storage <- Storage.R2.new config.storage Clock.System.new
       Logger.logInfo logger $ "Listening on port: " <> T.pack (show config.port)
-      run config.port $ app (Env logger database hasher sessions)
+      run config.port $ app (Env logger database hasher sessions storage)
