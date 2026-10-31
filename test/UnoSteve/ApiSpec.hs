@@ -1,6 +1,6 @@
 module UnoSteve.ApiSpec (spec) where
 
-import Data.Aeson (FromJSON, decode, encode, object, (.=))
+import Data.Aeson (FromJSON (parseJSON), decode, encode, object, withObject, (.:), (.=))
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Text (Text)
@@ -72,6 +72,30 @@ apiSpec = do
       `shouldRespondWith` 200
         { matchHeaders = ["X-Content-Type-Options" <:> "nosniff", "Cache-Control" <:> "no-store"]
         }
+
+  it "creates folders and lists the root" $ do
+    bearer <- signUp justin
+    createFolder bearer "Photos" Nothing `shouldRespondWith` 201
+    createFolder bearer "Photos" Nothing `shouldRespondWith` 409
+    createFolder bearer "a/b" Nothing `shouldRespondWith` 400
+    authed methodGet "/api/v1/folders/root/children" bearer `shouldRespondWith` 200
+
+  it "rejects a bad page size or cursor with a 400" $ do
+    bearer <- signUp justin
+    authed methodGet "/api/v1/folders/root/children?limit=0" bearer `shouldRespondWith` 400
+    authed methodGet "/api/v1/folders/root/children?limit=101" bearer `shouldRespondWith` 400
+    authed methodGet "/api/v1/folders/root/children?cursor=garbage" bearer `shouldRespondWith` 400
+
+  it "hides another user's folder behind a 404 (IDOR)" $ do
+    owner <- signUp justin
+    photos <- createdId =<< createFolder owner "Photos" Nothing
+    intruder <- signUp other
+    authed methodGet ("/api/v1/nodes/" <> encodeUtf8 photos) intruder `shouldRespondWith` 404
+    authed methodGet ("/api/v1/folders/" <> encodeUtf8 photos <> "/children") intruder
+      `shouldRespondWith` 404
+    createFolder intruder "Planted" (Just photos) `shouldRespondWith` 404
+    -- The owner still reaches it: the 404s above came from ownership, not a broken route.
+    authed methodGet ("/api/v1/nodes/" <> encodeUtf8 photos) owner `shouldRespondWith` 200
  where
   justin = credentials "justin@example.com" "correct horse battery"
   other = credentials "other@example.com" "another long password"
@@ -103,3 +127,26 @@ logIn creds = do
   response <- postJson "/api/v1/auth/login" creds
   Just (LoginBody issued) <- pure (decode (simpleBody response))
   pure (encodeUtf8 issued)
+
+-- | Register, then log in; returns a bearer token.
+signUp :: LBS.ByteString -> WaiSession st ByteString
+signUp creds = register creds >> logIn creds
+
+createFolder :: ByteString -> Text -> Maybe Text -> WaiSession st SResponse
+createFolder bearer folderName parent =
+  request
+    methodPost
+    "/api/v1/folders"
+    [(hAuthorization, "Bearer " <> bearer), (hContentType, "application/json")]
+    (encode (object ["name" .= folderName, "parentId" .= parent]))
+
+-- | Just the id of a node response.
+newtype IdBody = IdBody Text
+
+instance FromJSON IdBody where
+  parseJSON = withObject "node" $ \o -> IdBody <$> o .: "id"
+
+createdId :: SResponse -> WaiSession st Text
+createdId response = do
+  Just (IdBody nodeId) <- pure (decode (simpleBody response))
+  pure nodeId

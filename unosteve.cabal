@@ -37,6 +37,7 @@ library
   exposed-modules:
     UnoSteve.Api
     UnoSteve.Api.Auth
+    UnoSteve.Api.Nodes
     UnoSteve.Auth
     UnoSteve.Clock
     UnoSteve.Clock.Fixed

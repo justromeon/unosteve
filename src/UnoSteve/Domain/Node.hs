@@ -8,6 +8,8 @@ module UnoSteve.Domain.Node
   , unsafeNodeName
   , Node (..)
   , Location (..)
+  , parentUuid
+  , nodeUuid
   , Cursor (..)
   , cursorAfter
   , cursorText
@@ -82,6 +84,14 @@ data Location
   = AtRoot
   | InFolder NodeId
   deriving stock (Eq, Show)
+
+parentUuid :: Location -> Maybe UUID
+parentUuid = \case
+  AtRoot -> Nothing
+  InFolder folderId -> Just (nodeUuid folderId)
+
+nodeUuid :: NodeId -> UUID
+nodeUuid (NodeId uuid) = uuid
 
 {- | Where a page of children ended, in listing order: folders first, then name, then id.
  Clients get it as opaque text ('cursorText') and send it back unchanged.

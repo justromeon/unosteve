@@ -15,6 +15,7 @@ import Servant
 import Network.Wai (Middleware, Request, mapResponseHeaders, modifyResponse)
 import Servant.Server.Experimental.Auth (AuthHandler)
 import UnoSteve.Api.Auth (AuthApi, MeApi, authHandler, authServer, meServer)
+import UnoSteve.Api.Nodes (NodesApi, nodesServer)
 import UnoSteve.Database qualified as Database
 import UnoSteve.Domain.Session (Session)
 import UnoSteve.Env (Env)
@@ -34,7 +35,7 @@ type API =
   "healthz" :> Get '[JSON] Health
     :<|> "readyz" :> Get '[JSON] Health
     :<|> "version" :> Get '[JSON] Version
-    :<|> "api" :> "v1" :> (AuthApi :<|> MeApi)
+    :<|> "api" :> "v1" :> (AuthApi :<|> MeApi :<|> NodesApi)
 
 api :: Proxy API
 api = Proxy
@@ -56,6 +57,7 @@ server env =
     :<|> versionHandler
     :<|> ( authServer env.passwordHasher env.database env.sessions
              :<|> meServer env.database
+             :<|> nodesServer env.database
          )
 
 healthHandler :: Logger.Handle -> Handler Health
