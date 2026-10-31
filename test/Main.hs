@@ -4,6 +4,7 @@ import Test.Hspec
 
 import UnoSteve.ApiSpec qualified
 import UnoSteve.AuthSpec qualified
+import UnoSteve.Database.NodesSpec qualified
 import UnoSteve.Database.UsersSpec qualified
 import UnoSteve.Domain.NodeSpec qualified
 import UnoSteve.Domain.PageSpec qualified
@@ -25,3 +26,4 @@ main = hspec $ do
   describe "Api" UnoSteve.ApiSpec.spec
   UnoSteve.Domain.NodeSpec.spec
   UnoSteve.Domain.PageSpec.spec
+  UnoSteve.Database.NodesSpec.spec

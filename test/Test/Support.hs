@@ -9,6 +9,7 @@ module Test.Support
   , sessionConfig
   , testName
   , testPageSize
+  , testFolder
   ) where
 
 import Data.IORef (IORef, writeIORef)
@@ -20,10 +21,11 @@ import System.Environment (lookupEnv)
 import Test.Hspec
 
 import UnoSteve.Database qualified as Database
-import UnoSteve.Domain.Node (NodeName, mkNodeName)
+import UnoSteve.Database.Nodes qualified as Database.Nodes
+import UnoSteve.Domain.Node (Node, NodeId, NodeName, mkNodeName)
 import UnoSteve.Domain.Page (PageSize, mkPageSize)
 import UnoSteve.Domain.Password (Password, mkPassword)
-import UnoSteve.Domain.User (Email, NewUser (..), PasswordHash (..), mkEmail)
+import UnoSteve.Domain.User (Email, NewUser (..), PasswordHash (..), UserId, mkEmail)
 import UnoSteve.PasswordHasher qualified as PasswordHasher
 import UnoSteve.Secret (Secret (..))
 import UnoSteve.Sessions qualified as Sessions
@@ -68,3 +70,7 @@ testName raw = either (error . T.unpack) id (mkNodeName raw)
 
 testPageSize :: Int -> PageSize
 testPageSize n = either (error . T.unpack) id (mkPageSize n)
+
+testFolder :: Database.Handle -> UserId -> Maybe NodeId -> Text -> IO Node
+testFolder db owner parent raw =
+  Database.Nodes.createFolder db owner parent (testName raw) >>= either (fail . show) pure
