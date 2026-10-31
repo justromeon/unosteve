@@ -7,6 +7,7 @@ module UnoSteve.Domain.Node
   , nodeNameText
   , unsafeNodeName
   , Node (..)
+  , Location (..)
   , Cursor (..)
   , cursorAfter
   , cursorText
@@ -68,8 +69,7 @@ unsafeNodeName = NodeName
 data Node = Node
   { nodeId :: NodeId
   , ownerId :: UserId
-  , parentId :: Maybe NodeId
-  -- ^ Nothing: the node sits at its owner's root
+  , location :: Location
   , kind :: NodeKind
   , name :: NodeName
   , createdAt :: UTCTime
@@ -77,9 +77,15 @@ data Node = Node
   }
   deriving stock (Eq, Show)
 
--- \| Where a page of children ended, in listing order: folders first, then name, then id.
---  Clients get it as opaque text ('cursorText') and send it back unchanged.
---
+-- | Where a node sits.
+data Location
+  = AtRoot
+  | InFolder NodeId
+  deriving stock (Eq, Show)
+
+{- | Where a page of children ended, in listing order: folders first, then name, then id.
+ Clients get it as opaque text ('cursorText') and send it back unchanged.
+-}
 data Cursor = Cursor
   { isFile :: Bool
   , name :: NodeName
