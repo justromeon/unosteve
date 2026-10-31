@@ -57,6 +57,7 @@ library
     UnoSteve.Logger.Collecting
     UnoSteve.Logger.Noop
     UnoSteve.Logger.Stdout
+    UnoSteve.Nodes
     UnoSteve.PasswordHasher
     UnoSteve.Secret
     UnoSteve.Sessions
@@ -110,6 +111,7 @@ test-suite unosteve-test
     UnoSteve.Domain.PasswordSpec
     UnoSteve.Domain.UserSpec
     UnoSteve.LoggerSpec
+    UnoSteve.NodesSpec
     UnoSteve.PasswordHasherSpec
     UnoSteve.SessionsSpec
 
