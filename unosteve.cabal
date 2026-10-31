@@ -44,6 +44,7 @@ library
     UnoSteve.Clock.System
     UnoSteve.Config
     UnoSteve.Database
+    UnoSteve.Database.Nodes
     UnoSteve.Database.Sessions
     UnoSteve.Database.Users
     UnoSteve.Domain.Node
@@ -77,6 +78,7 @@ library
     , profunctors
     , time
     , uuid
+    , vector
     , wai
     , wai-extra
 
@@ -101,6 +103,7 @@ test-suite unosteve-test
     Test.Support
     UnoSteve.ApiSpec
     UnoSteve.AuthSpec
+    UnoSteve.Database.NodesSpec
     UnoSteve.Database.UsersSpec
     UnoSteve.Domain.NodeSpec
     UnoSteve.Domain.PageSpec
