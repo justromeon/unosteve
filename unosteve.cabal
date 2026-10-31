@@ -62,6 +62,8 @@ library
     UnoSteve.PasswordHasher
     UnoSteve.Secret
     UnoSteve.Sessions
+    UnoSteve.Storage
+    UnoSteve.Storage.InMemory
 
   -- other-modules:
   -- other-extensions:
@@ -118,6 +120,7 @@ test-suite unosteve-test
     UnoSteve.NodesSpec
     UnoSteve.PasswordHasherSpec
     UnoSteve.SessionsSpec
+    UnoSteve.StorageSpec
 
   -- other-extensions:
   type:           exitcode-stdio-1.0
