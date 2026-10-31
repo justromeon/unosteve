@@ -67,6 +67,8 @@ library
   -- other-extensions:
   build-depends:
     , aeson
+    , amazonka       ^>=2.0
+    , amazonka-s3    ^>=2.0
     , bytestring
     , containers
     , crypton
@@ -76,6 +78,7 @@ library
     , http-api-data
     , http-types
     , memory
+    , network-uri
     , password
     , profunctors
     , time
