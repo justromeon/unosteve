@@ -6,7 +6,11 @@ import UnoSteve.Database qualified as Database
 import UnoSteve.Database.Nodes qualified as Database.Nodes
 import UnoSteve.Database.Nodes qualified as Databse.Nodes
 import UnoSteve.Database.Users qualified as Database.Users
-import UnoSteve.Domain.Node (Node (kind, nodeId, parentId), NodeKind (Folder))
+import UnoSteve.Domain.Node
+  ( Location (AtRoot, InFolder)
+  , Node (kind, location, nodeId)
+  , NodeKind (Folder)
+  )
 import UnoSteve.Domain.User (User (userId), UserId)
 
 spec :: Spec
@@ -21,33 +25,33 @@ setup db = do
 nodesSpec :: SpecWith (Database.Handle, UserId, UserId)
 nodesSpec = do
   it "creates a folder at the root and finds it again" $ \(db, justin, _) -> do
-    photos <- testFolder db justin Nothing "Photos"
+    photos <- testFolder db justin AtRoot "Photos"
     photos.kind `shouldBe` Folder
-    photos.parentId `shouldBe` Nothing
+    photos.location `shouldBe` AtRoot
     Database.Nodes.findById db justin photos.nodeId `shouldReturn` Just photos
 
   it "creates a folder inside a folder" $ \(db, justin, _) -> do
-    photos <- testFolder db justin Nothing "Photos"
-    trip <- testFolder db justin (Just photos.nodeId) "Trip"
-    trip.parentId `shouldBe` Just photos.nodeId
+    photos <- testFolder db justin AtRoot "Photos"
+    trip <- testFolder db justin (InFolder photos.nodeId) "Trip"
+    trip.location `shouldBe` InFolder photos.nodeId
 
   it "rejects a duplicate name inside a folder" $ \(db, justin, _) -> do
-    photos <- testFolder db justin Nothing "Photos"
-    _ <- testFolder db justin (Just photos.nodeId) "Trip"
-    Databse.Nodes.createFolder db justin (Just photos.nodeId) (testName "Trip")
+    photos <- testFolder db justin AtRoot "Photos"
+    _ <- testFolder db justin (InFolder photos.nodeId) "Trip"
+    Databse.Nodes.createFolder db justin (InFolder photos.nodeId) (testName "Trip")
       `shouldReturn` Left Database.Nodes.NameTaken
 
   it "rejects a duplicate name at the root (NULLS NOT DISTINCT)" $ \(db, justin, _) -> do
-    _ <- testFolder db justin Nothing "Photos"
-    Database.Nodes.createFolder db justin Nothing (testName "Photos")
+    _ <- testFolder db justin AtRoot "Photos"
+    Database.Nodes.createFolder db justin AtRoot (testName "Photos")
       `shouldReturn` Left Database.Nodes.NameTaken
 
   it "allows the same name in another folder and for another user" $ \(db, justin, other) -> do
-    photos <- testFolder db justin Nothing "Photos"
-    _ <- testFolder db justin (Just photos.nodeId) "Photos"
-    _ <- testFolder db other (Just photos.nodeId) "Photos"
+    photos <- testFolder db justin AtRoot "Photos"
+    _ <- testFolder db justin (InFolder photos.nodeId) "Photos"
+    _ <- testFolder db other (InFolder photos.nodeId) "Photos"
     pure ()
 
   it "hides a node from another user" $ \(db, justin, other) -> do
-    photos <- testFolder db justin Nothing "Photos"
+    photos <- testFolder db justin AtRoot "Photos"
     Database.Nodes.findById db other photos.nodeId `shouldReturn` Nothing

@@ -17,6 +17,7 @@ import UnoSteve.Database qualified as Database
 import UnoSteve.Domain.Node
   ( Cursor (isFile, name, nodeId)
   , FileInfo (FileInfo, mimeType, sizeBytes)
+  , Location (AtRoot, InFolder)
   , Node (..)
   , NodeId (NodeId)
   , NodeKind (File, Folder)
@@ -33,9 +34,9 @@ data CreateError = NameTaken
 
 -- | Insert a folder. Whether the parent is valid is the caller's decision ('UnoSteve.Nodes').
 createFolder ::
-  Database.Handle -> UserId -> Maybe NodeId -> NodeName -> IO (Either CreateError Node)
-createFolder db owner parent folderName = do
-  result <- Database.run db (Session.statement (owner, parent, folderName) insertFolder)
+  Database.Handle -> UserId -> Location -> NodeName -> IO (Either CreateError Node)
+createFolder db owner place folderName = do
+  result <- Database.run db (Session.statement (owner, place, folderName) insertFolder)
   case result of
     Right row -> Right <$> decodeNode row
     Left err
@@ -48,11 +49,11 @@ findById db owner target =
   Database.runOrThrow db (Session.statement (owner, target) selectNode) >>= traverse decodeNode
 
 -- | Up to @limit@ live children of a folder (Nothing: the root), in listing order.
-listChildren :: Database.Handle -> UserId -> Maybe NodeId -> Maybe Cursor -> Int -> IO [Node]
-listChildren db owner parent after limit = do
+listChildren :: Database.Handle -> UserId -> Location -> Maybe Cursor -> Int -> IO [Node]
+listChildren db owner place after limit = do
   rows <- Database.runOrThrow db $ case after of
-    Nothing -> Session.statement (owner, parent, limit64) selectChildren
-    Just cursor -> Session.statement (owner, parent, cursor, limit64) selectChildrenAfter
+    Nothing -> Session.statement (owner, place, limit64) selectChildren
+    Just cursor -> Session.statement (owner, place, cursor, limit64) selectChildrenAfter
   traverse decodeNode (Vector.toList rows)
  where
   limit64 = fromIntegral limit :: Int64
@@ -76,20 +77,26 @@ decodeNode (nid, owner, parent, isFolder, rawName, size, mime, created, updated)
     Node
       { nodeId = NodeId nid
       , ownerId = UserId owner
-      , parentId = NodeId <$> parent
+      , location = maybe AtRoot (InFolder . NodeId) parent
       , kind = nodeKind
       , name = unsafeNodeName rawName
       , createdAt = created
       , updatedAt = updated
       }
 
+-- | The nullable @parent_id@ column: NULL at the root.
+parentParam :: Location -> Maybe UUID
+parentParam = \case
+  AtRoot -> Nothing
+  InFolder folderId -> Just (nodeUuid folderId)
+
 nodeUuid :: NodeId -> UUID
 nodeUuid (NodeId uuid) = uuid
 
-insertFolder :: Statement (UserId, Maybe NodeId, NodeName) NodeRow
+insertFolder :: Statement (UserId, Location, NodeName) NodeRow
 insertFolder =
   lmap
-    (\(UserId owner, parent, folderName) -> (owner, nodeUuid <$> parent, nodeNameText folderName))
+    (\(UserId owner, place, folderName) -> (owner, parentParam place, nodeNameText folderName))
     [singletonStatement|
       insert into nodes (owner_id, parent_id, kind, name, status)
       values ($1 :: uuid, $2 :: uuid?, 'folder', $3 :: text, 'ready')
@@ -110,10 +117,10 @@ selectNode =
       where owner_id = $1 :: uuid and id = $2 :: uuid and deleted_at is null
     |]
 
-selectChildren :: Statement (UserId, Maybe NodeId, Int64) (Vector NodeRow)
+selectChildren :: Statement (UserId, Location, Int64) (Vector NodeRow)
 selectChildren =
   lmap
-    (\(UserId owner, parent, limit) -> (owner, nodeUuid <$> parent, limit))
+    (\(UserId owner, place, limit) -> (owner, parentParam place, limit))
     [vectorStatement|
       select id :: uuid, owner_id :: uuid, parent_id :: uuid?, (kind = 'folder') :: bool,
         name :: text, size_bytes :: int8?, mime_type :: text?,
@@ -126,11 +133,11 @@ selectChildren =
       limit $3 :: int8
     |]
 
-selectChildrenAfter :: Statement (UserId, Maybe NodeId, Cursor, Int64) (Vector NodeRow)
+selectChildrenAfter :: Statement (UserId, Location, Cursor, Int64) (Vector NodeRow)
 selectChildrenAfter =
   lmap
-    ( \(UserId owner, parent, cursor, limit) ->
-        (owner, nodeUuid <$> parent, cursor.isFile, nodeNameText cursor.name, nodeUuid cursor.nodeId, limit)
+    ( \(UserId owner, place, cursor, limit) ->
+        (owner, parentParam place, cursor.isFile, nodeNameText cursor.name, nodeUuid cursor.nodeId, limit)
     )
     [vectorStatement|
       select id :: uuid, owner_id :: uuid, parent_id :: uuid?, (kind = 'folder') :: bool,
