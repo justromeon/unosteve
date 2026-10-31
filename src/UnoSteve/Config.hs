@@ -1,6 +1,5 @@
 module UnoSteve.Config
   ( Config (..)
-  , S3Config (..)
   , load
   ) where
 
@@ -18,22 +17,14 @@ import UnoSteve.Logger qualified as Logger
 import UnoSteve.Logger.Stdout qualified as Logger.Stdout
 import UnoSteve.Secret (Secret (..))
 import UnoSteve.Sessions qualified as Sessions
+import UnoSteve.Storage.R2 qualified as Storage.R2
 
 data Config = Config
   { port :: Int
   , logger :: Logger.Stdout.Config
   , database :: Database.Config
   , sessions :: Sessions.Config
-  , s3 :: S3Config
-  }
-  deriving (Show)
-
-data S3Config = S3Config
-  { endpoint :: Text
-  , region :: Text
-  , bucket :: Text
-  , accessKey :: Text
-  , secretKey :: Secret
+  , storage :: Storage.R2.Config
   }
   deriving (Show)
 
@@ -73,13 +64,14 @@ load = do
           $ Map.lookup name env
 
   let eitherS3Config =
-        S3Config
-          <$> getVar "S3_ENDPOINT"
+        Storage.R2.Config
+          <$> (getVar "S3_ENDPOINT" >>= Storage.R2.parseEndpoint)
           <*> getVar "S3_REGION"
           <*> getVar "S3_BUCKET"
           <*> getVar "S3_ACCESS_KEY"
           <*> (Secret <$> getVar "S3_SECRET_KEY")
-
+          <*> pure (15 * 60) -- upload URLs live 15 minutes
+          <*> pure (5 * 60) -- download URLs live 5 minutes
   let eitherLoggerConfig =
         Logger.Stdout.Config
           <$> maybe (Right Logger.Info) Logger.parseLevel (Map.lookup "LOG_LEVEL" env)
