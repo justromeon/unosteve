@@ -7,6 +7,8 @@ module Test.Support
   , t0
   , setDay
   , sessionConfig
+  , testName
+  , testPageSize
   ) where
 
 import Data.IORef (IORef, writeIORef)
@@ -18,6 +20,8 @@ import System.Environment (lookupEnv)
 import Test.Hspec
 
 import UnoSteve.Database qualified as Database
+import UnoSteve.Domain.Node (NodeName, mkNodeName)
+import UnoSteve.Domain.Page (PageSize, mkPageSize)
 import UnoSteve.Domain.Password (Password, mkPassword)
 import UnoSteve.Domain.User (Email, NewUser (..), PasswordHash (..), mkEmail)
 import UnoSteve.PasswordHasher qualified as PasswordHasher
@@ -58,3 +62,9 @@ setDay clockRef n = writeIORef clockRef (addUTCTime (n * nominalDay) t0)
 
 sessionConfig :: Sessions.Config
 sessionConfig = Sessions.Config{Sessions.ttl = 7 * nominalDay, Sessions.maxAge = 30 * nominalDay}
+
+testName :: Text -> NodeName
+testName raw = either (error . T.unpack) id (mkNodeName raw)
+
+testPageSize :: Int -> PageSize
+testPageSize n = either (error . T.unpack) id (mkPageSize n)
