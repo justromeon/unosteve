@@ -26,7 +26,7 @@ data Config = Config
   , sessions :: Sessions.Config
   , storage :: Storage.R2.Config
   }
-  deriving (Show)
+  deriving stock (Show)
 
 requiredVars :: [String]
 requiredVars =

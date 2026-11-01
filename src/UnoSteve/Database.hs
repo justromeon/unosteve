@@ -26,7 +26,7 @@ data Config = Config
   { url :: Secret
   , poolSize :: Int
   }
-  deriving (Show)
+  deriving stock (Show)
 
 newtype Handle = Handle {pool :: Pool}
 

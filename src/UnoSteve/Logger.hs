@@ -19,7 +19,7 @@ data Level
   | Info
   | Warn
   | Error
-  deriving (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show)
 
 renderLevel :: Level -> Text
 renderLevel Debug = "DEBUG"

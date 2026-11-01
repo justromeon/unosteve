@@ -23,10 +23,10 @@ import UnoSteve.Env qualified as Env
 import UnoSteve.Logger qualified as Logger
 
 newtype Health = Health {status :: Text}
-  deriving (Generic)
+  deriving stock (Generic)
 
 newtype Version = Version {version :: Text}
-  deriving (Generic)
+  deriving stock (Generic)
 
 instance ToJSON Health
 instance ToJSON Version

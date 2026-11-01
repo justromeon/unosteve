@@ -16,7 +16,7 @@ import System.IO (BufferMode (LineBuffering), hFlush, hSetBuffering, stdout)
 import UnoSteve.Logger qualified as Logger
 
 newtype Config = Config {minLevel :: Logger.Level}
-  deriving (Show)
+  deriving stock (Show)
 
 new :: Config -> IO Logger.Handle
 new config = do

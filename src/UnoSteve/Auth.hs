@@ -25,7 +25,7 @@ register hasher db emailAdd password = do
   Database.Users.create db (NewUser emailAdd hashed)
 
 data LoginError = InvalidCredentials
-  deriving (Eq, Show)
+  deriving stock (Eq, Show)
 
 login ::
   PasswordHasher.Handle ->

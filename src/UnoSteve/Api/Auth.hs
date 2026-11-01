@@ -59,7 +59,7 @@ data Credentials = Credentials
   { email :: Email
   , password :: Text
   }
-  deriving (Generic)
+  deriving stock (Generic)
 
 instance FromJSON Credentials
 
