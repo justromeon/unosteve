@@ -70,11 +70,10 @@ new config clock = do
 
       handle =
         Storage.Handle
-          { Storage.presignPut = \key mime size ->
+          { Storage.presignPut = \key mime ->
               presign config.uploadExpiry $
                 (S3.newPutObject bucketName (objectKey key) (AWS.toBody ("" :: ByteString)))
                   { S3.PutObject.contentType = Just mime
-                  , S3.PutObject.contentLength = Just (toInteger size)
                   }
           , Storage.presignGet = \key fileName ->
               presign config.downloadExpiry $
