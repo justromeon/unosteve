@@ -13,6 +13,7 @@ import UnoSteve.Domain.UserSpec qualified
 import UnoSteve.LoggerSpec qualified
 import UnoSteve.PasswordHasherSpec qualified
 import UnoSteve.SessionsSpec qualified
+import UnoSteve.Storage.R2Spec qualified
 import UnoSteve.StorageSpec qualified
 
 main :: IO ()
@@ -29,3 +30,4 @@ main = hspec $ do
   UnoSteve.Domain.PageSpec.spec
   describe "Database.Nodes" UnoSteve.Database.NodesSpec.spec
   describe "Storage" UnoSteve.StorageSpec.spec
+  describe "Storage.R2" UnoSteve.Storage.R2Spec.spec

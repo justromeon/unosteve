@@ -121,6 +121,7 @@ test-suite unosteve-test
     UnoSteve.NodesSpec
     UnoSteve.PasswordHasherSpec
     UnoSteve.SessionsSpec
+    UnoSteve.Storage.R2Spec
     UnoSteve.StorageSpec
 
   -- other-extensions:
@@ -132,10 +133,12 @@ test-suite unosteve-test
     , aeson
     , bytestring
     , containers
-    , hasql          ^>=1.9
+    , hasql            ^>=1.9
     , hspec
-    , hspec-wai      ^>=0.11
+    , hspec-wai        ^>=0.11
     , http-api-data
+    , http-client
+    , http-client-tls
     , http-types
     , time
     , unosteve

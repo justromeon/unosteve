@@ -3,7 +3,6 @@ module UnoSteve.Storage.InMemory where
 import Data.IORef (IORef, atomicModifyIORef', readIORef)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Text qualified as T
 import Data.Time (NominalDiffTime, addUTCTime)
 import UnoSteve.Clock (Handle (now))
 import UnoSteve.Clock qualified as Clock
@@ -17,9 +16,9 @@ The URLs are fake (memory://…) but spell out what was signed, for tests to che
 new :: IORef (Map StorageKey ObjectInfo) -> Clock.Handle -> Storage.Handle
 new objects clock =
   Storage.Handle
-    { Storage.presignPut = \key mime size ->
+    { Storage.presignPut = \key mime ->
         presign
-          ("PUT/" <> Storage.storageKeyText key <> "?contentType=" <> mime <> "&size=" <> T.pack (show size))
+          ("PUT/" <> Storage.storageKeyText key <> "?contentType=" <> mime)
     , Storage.presignGet = \key filename ->
         presign ("GET/" <> Storage.storageKeyText key <> "?filename=" <> nodeNameText filename)
     , Storage.headObject = \key -> Map.lookup key <$> readIORef objects

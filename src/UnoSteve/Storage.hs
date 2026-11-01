@@ -32,7 +32,8 @@ data ObjectInfo = ObjectInfo
 
 -- | Object storage. Signs URLs for clients and inspects or deletes objects; file bytes never pass through.
 data Handle = Handle
-  { presignPut :: StorageKey -> Text -> Int64 -> IO PresignedUrl
+  { presignPut :: StorageKey -> Text -> IO PresignedUrl
+  -- ^ Upload URL accepting only this Content-Type. The size isn't enforced: check it with 'headObject' after the upload.
   , presignGet :: StorageKey -> NodeName -> IO PresignedUrl
   , headObject :: StorageKey -> IO (Maybe ObjectInfo)
   , deleteObject :: StorageKey -> IO ()
