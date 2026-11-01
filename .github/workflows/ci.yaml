@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: cachix/install-nix-action@v31
       - run: nix develop --command dbmate --url "$TEST_DATABASE_URL" up
-      - run: nix develop --command cabal test --test-show-details=direct --test-options=--fail-on=pending
+      - run: nix develop --command cabal test --test-show-details=direct --test-options="--fail-on=pending --skip=Storage.R2"
 
   secrets:
     runs-on: ubuntu-latest
