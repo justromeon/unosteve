@@ -11,6 +11,7 @@ import UnoSteve.Domain.PageSpec qualified
 import UnoSteve.Domain.PasswordSpec qualified
 import UnoSteve.Domain.UserSpec qualified
 import UnoSteve.LoggerSpec qualified
+import UnoSteve.NodesSpec qualified
 import UnoSteve.PasswordHasherSpec qualified
 import UnoSteve.SessionsSpec qualified
 import UnoSteve.Storage.R2Spec qualified
@@ -29,5 +30,6 @@ main = hspec $ do
   UnoSteve.Domain.NodeSpec.spec
   UnoSteve.Domain.PageSpec.spec
   describe "Database.Nodes" UnoSteve.Database.NodesSpec.spec
+  describe "Nodes" UnoSteve.NodesSpec.spec
   describe "Storage" UnoSteve.StorageSpec.spec
   describe "Storage.R2" UnoSteve.Storage.R2Spec.spec
