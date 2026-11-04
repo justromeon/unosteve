@@ -7,4 +7,5 @@ description = "AWS's documented example key pair, used as a SigV4 test vector (t
 regexes = [
   '''AKIAIOSFODNN7EXAMPLE''',
   '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',
+  '''^SigV4\.secretKey$''',   # a record field name in Storage.R2, not a value
 ]
