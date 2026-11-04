@@ -65,6 +65,7 @@ library
     UnoSteve.Storage
     UnoSteve.Storage.InMemory
     UnoSteve.Storage.R2
+    UnoSteve.Storage.R2.SigV4
 
   -- other-modules:
   -- other-extensions:
@@ -121,6 +122,7 @@ test-suite unosteve-test
     UnoSteve.NodesSpec
     UnoSteve.PasswordHasherSpec
     UnoSteve.SessionsSpec
+    UnoSteve.Storage.R2.SigV4Spec
     UnoSteve.Storage.R2Spec
     UnoSteve.StorageSpec
 

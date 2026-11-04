@@ -14,6 +14,7 @@ import UnoSteve.LoggerSpec qualified
 import UnoSteve.NodesSpec qualified
 import UnoSteve.PasswordHasherSpec qualified
 import UnoSteve.SessionsSpec qualified
+import UnoSteve.Storage.R2.SigV4Spec qualified
 import UnoSteve.Storage.R2Spec qualified
 import UnoSteve.StorageSpec qualified
 
@@ -33,3 +34,4 @@ main = hspec $ do
   describe "Nodes" UnoSteve.NodesSpec.spec
   describe "Storage" UnoSteve.StorageSpec.spec
   describe "Storage.R2" UnoSteve.Storage.R2Spec.spec
+  describe "SigV4" UnoSteve.Storage.R2.SigV4Spec.spec
