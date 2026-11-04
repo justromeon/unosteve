@@ -1,0 +1,10 @@
+# Extend gitleaks' built-in rules; only add exceptions here.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "AWS's documented example key pair, used as a SigV4 test vector (test/UnoSteve/Storage/R2/SigV4Spec.hs)"
+regexes = [
+  '''AKIAIOSFODNN7EXAMPLE''',
+  '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',
+]
