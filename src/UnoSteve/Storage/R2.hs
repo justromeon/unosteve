@@ -5,10 +5,8 @@ import Amazonka.Auth qualified as AWS
 import Amazonka.S3 qualified as S3
 import Amazonka.S3.GetObject qualified as S3.GetObject
 import Amazonka.S3.HeadObject qualified as S3.HeadObject
-import Amazonka.S3.PutObject qualified as S3.PutObject
 import Control.Exception (throwIO)
 import Control.Monad (void)
-import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8Lenient, encodeUtf8)
@@ -24,6 +22,7 @@ import UnoSteve.Clock qualified as Clock
 import UnoSteve.Secret (Secret (reveal))
 import UnoSteve.Storage (StorageKey (..))
 import UnoSteve.Storage qualified as Storage
+import UnoSteve.Storage.R2.SigV4 qualified as SigV4
 
 data Config = Config
   { host :: Host
@@ -61,6 +60,9 @@ new config clock = do
   env <- newEnv config
   let objectKey key = S3.ObjectKey (Storage.storageKeyText key)
       bucketName = S3.BucketName config.bucket
+      Host hostName = config.host
+      credentials =
+        SigV4.Credentials{SigV4.accessKey = config.accessKey, SigV4.secretKey = config.secretKey}
 
       presign :: (AWS.AWSRequest a) => NominalDiffTime -> a -> IO Storage.PresignedUrl
       presign validFor request = do
@@ -70,11 +72,17 @@ new config clock = do
 
       handle =
         Storage.Handle
-          { Storage.presignPut = \key mime ->
-              presign config.uploadExpiry $
-                (S3.newPutObject bucketName (objectKey key) (AWS.toBody ("" :: ByteString)))
-                  { S3.PutObject.contentType = Just mime
-                  }
+          { Storage.presignPut = \key mime bytes -> do
+              now <- clock.now
+              let signed =
+                    SigV4.presignUrl credentials config.region now config.uploadExpiry $
+                      SigV4.Request
+                        { SigV4.method = "PUT"
+                        , SigV4.host = hostName
+                        , SigV4.path = [config.bucket, Storage.storageKeyText key]
+                        , SigV4.headers = [("Content-Length", T.pack (show bytes)), ("Content-Type", mime)]
+                        }
+              pure Storage.PresignedUrl{url = signed, expiresAt = addUTCTime config.uploadExpiry now}
           , Storage.presignGet = \key fileName ->
               presign config.downloadExpiry $
                 (S3.newGetObject bucketName (objectKey key))

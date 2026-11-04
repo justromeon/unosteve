@@ -43,7 +43,7 @@ r2Spec = do
   it "uploads, inspects, downloads and deletes through presigned URLs" $ \(storage, manager) -> do
     key <- newKey
     flip finally (storage.deleteObject key) $ do
-      upload <- storage.presignPut key "text/plain"
+      upload <- storage.presignPut key "text/plain" (LBS.length content)
       putVia manager upload "text/plain" content `shouldReturn` 200
       storage.headObject key
         `shouldReturn` Just (Storage.ObjectInfo (LBS.length content) (Just "text/plain"))
@@ -56,8 +56,15 @@ r2Spec = do
 
   it "rejects an upload with another Content-Type" $ \(storage, manager) -> do
     key <- newKey
-    upload <- storage.presignPut key "text/plain"
+    upload <- storage.presignPut key "text/plain" (LBS.length content)
     putVia manager upload "image/png" content `shouldReturn` 403
+    storage.headObject key `shouldReturn` Nothing
+
+  it "rejects an upload bigger or smaller than the signed size, storing nothing" $ \(storage, manager) -> do
+    key <- newKey
+    upload <- storage.presignPut key "text/plain" (LBS.length content)
+    putVia manager upload "text/plain" (content <> "!") `shouldReturn` 403
+    putVia manager upload "text/plain" (LBS.drop 1 content) `shouldReturn` 403
     storage.headObject key `shouldReturn` Nothing
 
   it "reports a missing object as Nothing and deletes it without error" $ \(storage, _) -> do
