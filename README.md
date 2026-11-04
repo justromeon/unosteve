@@ -16,7 +16,7 @@ folders and files. File bytes go directly between the client and object storage
 | Passwords | **argon2id** (`password` library); same `401` for unknown email and wrong password, with a dummy hash check against timing attacks |
 | Database | **PostgreSQL** via **hasql** (binary protocol, SQL checked at compile time with hasql-th), **hasql-pool**; migrations in plain SQL with **dbmate** |
 | Folders | Adjacency-list tree, unique names per folder (partial unique index), **keyset pagination** with opaque cursors. Every query is scoped to its owner: another user's node is a `404` |
-| Object storage | **Cloudflare R2** over the S3 API with **amazonka**: presigned PUT/GET (SigV4), HEAD, DELETE; RFC 6266/8187 `Content-Disposition` for downloads |
+| Object storage | **Cloudflare R2** over the S3 API. Upload URLs are signed by a small **SigV4** presigner of our own that signs `Content-Type` **and `Content-Length`**, so R2 refuses an upload of any other size before storing it (amazonka never signs the length). Downloads, HEAD and DELETE use **amazonka**; downloads carry an RFC 6266/8187 `Content-Disposition` |
 | Architecture | **Handle pattern**: no app monad; each component is a record of its dependencies, built in `Main` |
 | Errors | Expected failures are `Either` values with small per-operation types, mapped to HTTP once in the handlers; unexpected ones are exceptions (500) |
 | Build & tooling | **Nix flakes** (haskell-flake), fourmolu, hlint, GitHub Actions CI, gitleaks |
