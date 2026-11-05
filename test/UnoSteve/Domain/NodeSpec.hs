@@ -1,5 +1,7 @@
 module UnoSteve.Domain.NodeSpec (spec) where
 
+import Data.Aeson.Decoding (eitherDecode)
+import Data.ByteString.Lazy qualified as LBS
 import Data.Either (isLeft, isRight)
 import Data.Text qualified as T
 import Data.UUID (nil)
@@ -35,4 +37,18 @@ spec = do
       isLeft (parseCursor "not a cursor") `shouldBe` True
 
     it "rejects a valid base64url but not a cursor" $
-      isLeft (parseCursor "e30") `shouldBe` True -- base64url of "{}"
+      isLeft (parseCursor "e30") `shouldBe` True
+
+  describe "mkFileSize" $ do
+    it "accepts 0 bytes up to the limit, both ends included" $ do
+      all (isRight . mkFileSize) [0, maxFileBytes] `shouldBe` True
+
+    it "rejects negative sizes and anything over limit" $ do
+      all (isLeft . mkFileSize) [-1, maxFileBytes + 1] `shouldBe` True
+
+    it "parses from JSON only as a whole number in range" $ do
+      fileSizeBytes <$> eitherDecode "10" `shouldBe` Right 10
+      all
+        (isLeft . (eitherDecode :: LBS.ByteString -> Either String FileSize))
+        ["1.5", "-1", "1e100", "\"10\""]
+        `shouldBe` True

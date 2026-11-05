@@ -16,6 +16,11 @@ module UnoSteve.Domain.Node
   , parseCursor
   , StorageKey (..)
   , storageKeyText
+  , FileSize
+  , mkFileSize
+  , fileSizeBytes
+  , maxFileBytes
+  , NewFile (..)
   ) where
 
 import Data.Aeson (FromJSON (parseJSON), withText)
@@ -143,3 +148,30 @@ newtype StorageKey = StorageKey UUID
 
 storageKeyText :: StorageKey -> Text
 storageKeyText (StorageKey uuid) = UUID.toText uuid
+
+newtype FileSize = FileSize Int64
+  deriving newtype (Eq, Ord, Show)
+
+instance FromJSON FileSize where
+  parseJSON value = parseJSON value >>= either (fail . T.unpack) pure . mkFileSize
+
+-- | 100 MiB: the MVP's limit for one file (one PUT).
+maxFileBytes :: Int64
+maxFileBytes = 100 * 1024 * 1024
+
+mkFileSize :: Int64 -> Either Text FileSize
+mkFileSize bytes
+  | bytes < 0 = Left "Size must not be negative"
+  | bytes > maxFileBytes = Left $ "Size must be at most " <> T.pack (show maxFileBytes)
+  | otherwise = Right (FileSize bytes)
+
+fileSizeBytes :: FileSize -> Int64
+fileSizeBytes (FileSize bytes) = bytes
+
+data NewFile = NewFile
+  { name :: NodeName
+  , location :: Location
+  , size :: FileSize
+  , mimeType :: Text
+  }
+  deriving stock (Eq, Show)
