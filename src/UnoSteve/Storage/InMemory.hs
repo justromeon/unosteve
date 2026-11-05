@@ -7,8 +7,8 @@ import Data.Text qualified as T
 import Data.Time (NominalDiffTime, addUTCTime)
 import UnoSteve.Clock (Handle (now))
 import UnoSteve.Clock qualified as Clock
-import UnoSteve.Domain.Node (nodeNameText)
-import UnoSteve.Storage (ObjectInfo, StorageKey, expiresAt)
+import UnoSteve.Domain.Node (StorageKey, nodeNameText, storageKeyText)
+import UnoSteve.Storage (ObjectInfo, expiresAt)
 import UnoSteve.Storage qualified as Storage
 
 {- | Objects live in a map the caller owns, so a test "uploads" by writing to it.
@@ -20,14 +20,14 @@ new objects clock =
     { Storage.presignPut = \key mime bytes ->
         presign
           ( "PUT/"
-              <> Storage.storageKeyText key
+              <> storageKeyText key
               <> "?contentType="
               <> mime
               <> "&size="
               <> T.pack (show bytes)
           )
     , Storage.presignGet = \key filename ->
-        presign ("GET/" <> Storage.storageKeyText key <> "?filename=" <> nodeNameText filename)
+        presign ("GET/" <> storageKeyText key <> "?filename=" <> nodeNameText filename)
     , Storage.headObject = \key -> Map.lookup key <$> readIORef objects
     , Storage.deleteObject = \key -> atomicModifyIORef' objects $ \stored -> (Map.delete key stored, ())
     }

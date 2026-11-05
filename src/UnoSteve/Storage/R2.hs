@@ -19,8 +19,8 @@ import Network.URI
   , parseAbsoluteURI
   )
 import UnoSteve.Clock qualified as Clock
+import UnoSteve.Domain.Node (StorageKey (StorageKey), storageKeyText)
 import UnoSteve.Secret (Secret (reveal))
-import UnoSteve.Storage (StorageKey (..))
 import UnoSteve.Storage qualified as Storage
 import UnoSteve.Storage.R2.SigV4 qualified as SigV4
 
@@ -58,7 +58,7 @@ parseEndpoint raw = case parseAbsoluteURI (T.unpack raw) of
 new :: Config -> Clock.Handle -> IO Storage.Handle
 new config clock = do
   env <- newEnv config
-  let objectKey key = S3.ObjectKey (Storage.storageKeyText key)
+  let objectKey key = S3.ObjectKey (storageKeyText key)
       bucketName = S3.BucketName config.bucket
       Host hostName = config.host
       credentials =
@@ -79,7 +79,7 @@ new config clock = do
                       SigV4.Request
                         { SigV4.method = "PUT"
                         , SigV4.host = hostName
-                        , SigV4.path = [config.bucket, Storage.storageKeyText key]
+                        , SigV4.path = [config.bucket, storageKeyText key]
                         , SigV4.headers = [("Content-Length", T.pack (show bytes)), ("Content-Type", mime)]
                         }
               pure Storage.PresignedUrl{url = signed, expiresAt = addUTCTime config.uploadExpiry now}

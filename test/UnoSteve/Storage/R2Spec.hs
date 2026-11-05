@@ -19,6 +19,7 @@ import System.Environment (lookupEnv)
 import Test.Hspec (Spec, SpecWith, beforeAll, it, pendingWith, runIO, shouldBe, shouldReturn)
 import Test.Support (testName)
 import UnoSteve.Clock.System qualified as Clock.System
+import UnoSteve.Domain.Node (StorageKey (StorageKey))
 import UnoSteve.Secret (Secret (Secret))
 import UnoSteve.Storage qualified as Storage
 import UnoSteve.Storage.R2 qualified as Storage.R2
@@ -77,8 +78,8 @@ r2Spec = do
 content :: LBS.ByteString
 content = "hello from unosteve"
 
-newKey :: IO Storage.StorageKey
-newKey = Storage.StorageKey <$> UUID.nextRandom
+newKey :: IO StorageKey
+newKey = StorageKey <$> UUID.nextRandom
 
 -- | What a browser would do with an upload URL; returns the status code.
 putVia :: Manager -> Storage.PresignedUrl -> ByteString -> LBS.ByteString -> IO Int

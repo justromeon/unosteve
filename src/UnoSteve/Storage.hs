@@ -6,17 +6,8 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8Lenient, encodeUtf8)
 import Data.Time (UTCTime)
-import Data.UUID (UUID)
-import Data.UUID qualified as UUID
 import Network.HTTP.Types (urlEncode)
-import UnoSteve.Domain.Node (NodeName, nodeNameText)
-
--- | Where an object lives in the bucket: a random UUID, never the user's file name.
-newtype StorageKey = StorageKey UUID
-  deriving newtype (Eq, Ord)
-
-storageKeyText :: StorageKey -> Text
-storageKeyText (StorageKey uuid) = UUID.toText uuid
+import UnoSteve.Domain.Node (NodeName, StorageKey, nodeNameText)
 
 data PresignedUrl = PresignedUrl
   { url :: Text

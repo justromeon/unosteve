@@ -14,6 +14,8 @@ module UnoSteve.Domain.Node
   , cursorAfter
   , cursorText
   , parseCursor
+  , StorageKey (..)
+  , storageKeyText
   ) where
 
 import Data.Aeson (FromJSON (parseJSON), withText)
@@ -29,6 +31,7 @@ import Data.Text qualified as T
 import Data.Text.Encoding (decodeUtf8Lenient, encodeUtf8)
 import Data.Time (UTCTime)
 import Data.UUID (UUID)
+import Data.UUID qualified as UUID
 import UnoSteve.Domain.User (UserId)
 import Web.HttpApiData (FromHttpApiData (parseUrlPiece))
 
@@ -133,3 +136,10 @@ parseCursor raw = do
   pure Cursor{isFile = file, name = cursorName, nodeId = NodeId uuid}
  where
   invalid = "invalid cursor"
+
+-- | Where a file's bytes live in the bucket: a random UUID, never the user's file name.
+newtype StorageKey = StorageKey UUID
+  deriving newtype (Eq, Ord, Show)
+
+storageKeyText :: StorageKey -> Text
+storageKeyText (StorageKey uuid) = UUID.toText uuid
